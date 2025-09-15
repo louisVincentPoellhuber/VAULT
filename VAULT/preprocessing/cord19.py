@@ -48,7 +48,7 @@ class Cord19Processor(DatasetProcessor):
                         date = filename.split("_")[-1].split(".")[0]
 
                         # Open the cord-19 tar archive
-                        with tarfile.open(tar_path, "r:gz") as outer_tar:
+                        with tarfile.open(tar_path, "r") as outer_tar:
                             # Get metadata information, and append it to the ID Table
                             metadata_member = outer_tar.getmember(f"{date}/metadata.csv")
                             f = outer_tar.extractfile(metadata_member)
@@ -64,7 +64,7 @@ class Cord19Processor(DatasetProcessor):
                                     inner_fileobj = io.BytesIO(inner_bytes)
 
                                     # Open the inner tar.gz
-                                    with tarfile.open(fileobj=inner_fileobj, mode="r:gz") as inner_tar:
+                                    with tarfile.open(fileobj=inner_fileobj, mode="r") as inner_tar:
                                         for inner_member in inner_tar.getmembers():
                                             if inner_member.name.endswith(".json"):
                                                 with inner_tar.extractfile(inner_member) as inner_f:
@@ -89,7 +89,7 @@ class Cord19Processor(DatasetProcessor):
 
         ids = []
         for item in corpus:
-            ids.append(item["_id"])
+            ids.append(item)
 
         return ids
 

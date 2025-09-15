@@ -1,0 +1,6 @@
+tmp/
+.env
+slurm*
+*.log
+*pycache*
+.vscode/

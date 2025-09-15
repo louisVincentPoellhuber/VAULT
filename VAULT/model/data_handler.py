@@ -1,11 +1,11 @@
-from modeling_utils import *
+from .modeling_utils import *
 import os
 import json
 from dataclasses import dataclass
 import torch.utils.data.dataset
 from transformers import AutoTokenizer, PreTrainedTokenizerBase, DataCollatorForWholeWordMask
 from datasets import load_dataset,concatenate_datasets,load_from_disk
-from modeling_utils import tensorize_batch
+from .modeling_utils import tensorize_batch
 import nltk
 import sqlite3
 from beir.datasets.data_loader import GenericDataLoader
@@ -264,11 +264,11 @@ class VaultDataLoader(GenericDataLoader):
     def __init__(
         self,
         dataset_name: str = None,
-        data_folder: str = "/Tmp/lvpoellhuber/datasets/vault", #os.getenv("VAULT_DIR"), # TODO: Export VAULT dir to environment vars
+        data_folder: str = None, 
         corpus_file: str = "corpus.jsonl",
         query_file: str = "queries.jsonl",
         qrels_folder: str = "qrels",
-        qrels_file: str = "",
+        qrels_file: str = None,
     ):
         self.corpus = {}
         self.queries = {}
@@ -283,10 +283,15 @@ class VaultDataLoader(GenericDataLoader):
             "nfcorpus", 
             "cord19"
         ]
-        if dataset_name not in self.datasets:
-            raise ValueError(f"Dataset {dataset_name} does not exist in VAULT. Please select a dataset from: wikir, hotpotqa, nq, scidocs, doris-mae, nfcorpus, cord19, bioasq.")
+
+        data_folder = os.getenv("VAULT_DIR")
+        if data_folder is None:
+            raise ValueError("Please set the VAULT_DIR environment variable to the root folder of the VAULT datasets.")
 
         if dataset_name:
+            if dataset_name not in self.datasets:
+                raise ValueError(f"Dataset {dataset_name} does not exist in VAULT. Please select a dataset from: wikir, hotpotqa, nq, scidocs, doris-mae, nfcorpus, cord19, bioasq.")
+            
             dataset_path = os.path.join(data_folder, dataset_name)
 
             # NQ and HotPotQA rely on a common Wikipedia corpus, instead of having separate corpuses. 
@@ -302,8 +307,6 @@ class VaultDataLoader(GenericDataLoader):
             if corpus_file == None:
                 raise ValueError(f"No corpus file found. Please run preprocessing scripts.")
 
-            self.streamed = self.corpus_file.endswith("corpus.db")
-
             self.query_file = os.path.join(dataset_path, query_file) 
             self.qrels_folder = os.path.join(dataset_path, qrels_folder) 
         else:
@@ -311,10 +314,12 @@ class VaultDataLoader(GenericDataLoader):
             self.query_file = query_file
             self.qrels_folder = None
 
+        self.streamed = self.corpus_file.endswith("corpus.db")
         self.qrels_file = qrels_file
 
     def load(self, split="test") -> tuple[dict[str, dict[str, str]], dict[str, str], dict[str, dict[str, int]]]:
-        self.qrels_file = os.path.join(self.qrels_folder, split + ".tsv")
+        if self.qrels_file is None:
+            self.qrels_file = os.path.join(self.qrels_folder, split + ".tsv")
         
         if self.streamed:
             self.dataloader = StreamedDataLoader(
@@ -322,6 +327,7 @@ class VaultDataLoader(GenericDataLoader):
                 query_file=self.query_file, 
                 qrels_file=self.qrels_file
             )
+            return self.dataloader.load(split)
         else:
             self.dataloader = GenericDataLoader(
                 corpus_file=self.corpus_file, 
@@ -329,7 +335,8 @@ class VaultDataLoader(GenericDataLoader):
                 qrels_file=self.qrels_file
             )
 
-        return self.dataloader.load(split)
+            return self.dataloader.load_custom()
+           
     
     
 class DatasetForFineTuning(torch.utils.data.Dataset):

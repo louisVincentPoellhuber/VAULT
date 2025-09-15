@@ -1,11 +1,11 @@
-from modeling_utils import *
+from .modeling_utils import *
 import torch
 from torch import Tensor, nn
 import torch.distributed as dist
 import torch.nn.functional as F
 from beir.retrieval.models.util import extract_corpus_sentences
 from tqdm import trange
-from data_handler import DataCollatorForEvaluatingLongtriever
+from .data_handler import DataCollatorForEvaluatingLongtriever
 
 def compute_contrastive_loss(co_query_embeddings, co_corpus_embeddings, **kwargs):
         

@@ -14,8 +14,7 @@ if JOBID == None: # No slurm? Try to get the experiment name exported in a bash 
     JOBID = os.getenv("EXP_NAME")
     if JOBID == None: # No experiment name? Use local
         JOBID = "local"
-    os.makedirs(f"src/longtriever/logs", exist_ok=True)
-    log_path = f"src/longtriever/logs/{JOBID}.log"
+    log_path = f"{JOBID}.log"
 else:
     log_path = f"slurm-{JOBID}.log"
 

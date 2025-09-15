@@ -189,8 +189,8 @@ class DorisMAEProcessor(DatasetProcessor):
                     with open(url_path, "r") as infile:
                         subprocess.run(cmd, stdin=infile, check=False)
 
-                    # Wait for the PDFs to finish downloading
-                    time.sleep(1)
+                    # # Wait for the PDFs to finish downloading
+                    # time.sleep(2)
 
                     # Read the 100 PDFs and extract their text
                     for pdf in tqdm(os.listdir(pdf_dir), desc="PDFs to extract"):
@@ -199,13 +199,17 @@ class DorisMAEProcessor(DatasetProcessor):
                             id = pdf.replace(".pdf", "")
                             batch.append((text, id))
                     
-                    # Clear the PDF directory to save storage space
-                    shutil.rmtree(pdf_dir)
-                        
                     # Add text to DB every now and then
                     cursor.executemany("UPDATE articles SET text=? WHERE id=?", batch)
                     connection.commit()
                     batch.clear()
+
+                    # Wait for the PDFs to finish extracting
+                    time.sleep(2)
+
+                    # Clear the PDF directory to save storage space
+                    shutil.rmtree(pdf_dir)
+                        
 
             connection.close()
         else:

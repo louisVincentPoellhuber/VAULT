@@ -1,72 +1,5 @@
 from utils import *
-
-def download_s2orc(download_dir, overwrite=False):
-    if len(os.listdir(download_dir)) ==0 or overwrite:
-        API_KEY = os.getenv("S2_API_KEY")
-        if not API_KEY:
-            raise ValueError("Please set the S2_API_KEY environment variable with your Semantic Scholar API key.")
-
-        # get latest release's ID
-        response = requests.get("https://api.semanticscholar.org/datasets/v1/release/latest").json()
-        RELEASE_ID = response["release_id"]
-        print(f"Latest release ID: {RELEASE_ID}")
-
-        # get the download links for the s2orc dataset; needs to pass API key through `x-api-key` header
-        # download via wget. this can take a while...
-        response = requests.get(f"https://api.semanticscholar.org/datasets/v1/release/{RELEASE_ID}/dataset/s2orc/", headers={"x-api-key": API_KEY}).json()
-        for url in tqdm(response["files"]):
-            match = re.match(r"https://ai2-s2ag.s3.amazonaws.com/staging/(.*)/s2orc/(.*).gz(.*)", url)
-            assert match.group(1) == RELEASE_ID
-            SHARD_ID = match.group(2)
-            wget.download(url, out=os.path.join(download_dir, f"{SHARD_ID}.gz"))
-        print("Downloaded all shards.")
-    else:
-        log_message("S2ORC shards already exist. Skipping download.", print_message=True)
-
-def create_db(download_dir, db_dir, overwrite):
-    db_path = os.path.join(db_dir, "corpus.db")
-    shards_path = os.listdir(download_dir)
-
-    if overwrite or not os.path.exists(db_path):
-        # 1. Create database connection & table
-        print("Creating database.")
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS articles (
-            id TEXT PRIMARY KEY,
-            corpusid INTEGER,
-            text TEXT
-        )
-        """)
-        conn.commit()
-
-        # 2. Walk through every file in every folder
-        batch = [] 
-        total_processed_pages = 0
-        for shard in tqdm(shards_path):
-            shard = os.path.join('/Tmp/lvpoellhuber/datasets/vault/corpus/s2orc/downloads', shard)
-            with gzip.open(shard, 'rt', encoding='utf-8') as f:
-                for line in tqdm(f):
-                    line = line.strip()
-                    article = json.loads(line)
-
-                    ssid = article["content"]["source"]["pdfsha"]
-                    text = article["content"]["text"]
-                    corpusid = article["corpusid"]
-                    
-                    batch.append((ssid, text, corpusid))
-        
-            total_processed_pages+=len(batch)
-            cur.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?)", batch)
-            conn.commit()
-            batch.clear()
-
-        # 4. Close connection
-        conn.close()
-    else:
-        print("Database already exists. Skipping creation. ")
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class SciDocsProcessor(DatasetProcessor):
     def __init__(self, datapath, overwrite):
@@ -74,11 +7,88 @@ class SciDocsProcessor(DatasetProcessor):
      
     def download(self):
         ir_datasets.load("beir/scidocs")
-        download_s2orc(self.download_dir, self.overwrite)
-        create_db(self.download_dir, self.dataset_dir, self.overwrite)
+        db_path = os.path.join(self.dataset_dir, "corpus.db")
+        self.connection = sqlite3.connect(db_path)
+        self.cursor = self.connection.cursor()
+        
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS articles (
+            id TEXT PRIMARY KEY,
+            corpusid INTEGER,
+            text TEXT
+        )
+        """)
+        self.connection.commit()
+        
+    def _stream_and_index(self, ssids):
+        API_KEY = os.getenv("S2_API_KEY")
+        if not API_KEY:
+            raise ValueError("Please set the S2_API_KEY environment variable with your Semantic Scholar API key.")
+        
+        release_id = "2025-08-19"
+        response = requests.get(
+            f"https://api.semanticscholar.org/datasets/v1/release/{release_id}/dataset/s2orc/",
+            headers={"x-api-key": API_KEY}
+        ).json()
+
+        def download_file(url):
+            match = re.match(r"https://ai2-s2ag.s3.amazonaws.com/staging/(.*)/s2orc/(.*).gz(.*)", url)
+            if match == None:
+                return None
+            assert match.group(1) == release_id
+            if not match.group(2).startswith("shard"):
+                log_message(f"Unexpected file {url}, skipping.", print_message=True)
+            shard_id = match.group(2).split("_")[-1].split("?")[0]
+            download_path = os.path.join(self.download_dir, f"{shard_id}.gz")
+
+            if os.path.exists(download_path):
+                return None  # already downloaded
+
+            r = requests.get(url, stream=True)
+            r.raise_for_status()
+            with open(download_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            return download_path
+
+        with ThreadPoolExecutor(max_workers=16) as executor:
+            futures = [executor.submit(download_file, url) for url in response["files"]]
+            for future in tqdm(as_completed(futures), total=len(futures)):
+                download_path = future.result()
+                if download_path!=None: # Don't re-processed stuff that's already been processed
+                    self._get_shard_articles(download_path, ssids)
+                    os.remove(download_path)  # Clean up the downloaded shard file
+
+        print("Downloaded all shards.")
+
+    def _get_shard_articles(self, download_path, ssids):
+        # 2. Walk through every file in every folder
+        batch = [] 
+        with gzip.open(download_path, 'rt', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                article = json.loads(line)
+
+                ssid = article["content"]["source"].get("pdfsha", None)
+
+                if ssid in ssids:
+                    text = article["content"]["text"]
+                    corpusid = article["corpusid"]
+                    
+                    batch.append((ssid, text, corpusid))
+        
+            if len(batch)>0:
+                self.cursor.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?)", batch)
+                self.connection.commit()
 
     def process_corpus(self):
-        log_message("No need to process corpus for SciDocs. Using S2ORC database directly.", print_message=True)
+        dataset = ir_datasets.load(f"beir/scidocs")
+        
+        ssids = []
+        for article in dataset.docs_iter():
+            ssids.append(article.doc_id)
+
+        self._stream_and_index(ssids)
 
     def process_queries(self):
         dataset = ir_datasets.load(f"beir/scidocs")
@@ -103,18 +113,17 @@ class SciDocsProcessor(DatasetProcessor):
         connection = sqlite3.connect(db_path)
         cursor = connection.cursor()
         
-        for subset in self.subsets:
-            dataset = ir_datasets.load(f"beir/scidocs/{subset}")
-            qrel_path = os.path.join(self.qrel_dir, f"{subset}.tsv")
+        dataset = ir_datasets.load(f"beir/scidocs")
+        qrel_path = os.path.join(self.qrel_dir, f"test.tsv")
 
-            if self.overwrite or not os.path.exists(qrel_path):
-                with open(qrel_path, "w", encoding="utf-8") as f:
-                    for qrel in dataset.qrels_iter():
-                        cursor.execute("SELECT id, title, text, url FROM articles WHERE id = ?", (qrel.doc_id,))
-                        if cursor.fetchone() is not None:
-                            f.write(f"{qrel.query_id}\t{qrel.doc_id}\t{qrel.relevance}\n")
-            else:
-                log_message(f"Qrels for {subset} already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
+        if self.overwrite or not os.path.exists(qrel_path):
+            with open(qrel_path, "w", encoding="utf-8") as f:
+                for qrel in dataset.qrels_iter():
+                    cursor.execute("SELECT id, title, text, url FROM articles WHERE id = ?", (qrel.doc_id,))
+                    if cursor.fetchone() is not None:
+                        f.write(f"{qrel.query_id}\t{qrel.doc_id}\t{qrel.relevance}\n")
+        else:
+            log_message(f"Qrels for test already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
 
         connection.close()
 

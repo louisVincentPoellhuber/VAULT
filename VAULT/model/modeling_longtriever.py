@@ -2,7 +2,7 @@ import torch
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BertEmbeddings,BertLayer,BertOnlyMLMHead,BertPreTrainedModel
 from torch import Tensor, nn
-from enhancedDecoder import BertLayerForDecoder
+from .enhancedDecoder import BertLayerForDecoder
 
 # Mean pooling useful for encoder based models with Mean Pooling usually used with cosine similarity and normalization.
 def mean_pooling(model_output, attention_mask):

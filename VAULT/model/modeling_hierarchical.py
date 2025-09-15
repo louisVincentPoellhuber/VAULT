@@ -3,7 +3,7 @@ from transformers import BertModel
 from transformers.models.bert.modeling_bert import BertEmbeddings,BertLayer,BertOnlyMLMHead,BertPreTrainedModel,BertConfig
 from torch import Tensor, nn
 from typing import Optional
-from modeling_longtriever import *
+from .modeling_longtriever import *
 
 
 class HierarchicalLongtrieverConfig(BertConfig):

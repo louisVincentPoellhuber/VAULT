@@ -56,7 +56,7 @@ class NQProcessor(DatasetProcessor):
             connection = sqlite3.connect(wikipedia_db_path)
             cursor = connection.cursor()
 
-            cursor.execute("SELECT id, title FROM articles")
+            # cursor.execute("SELECT id, title FROM articles")
             
             for article_id, title in tqdm(cursor.execute("SELECT id, title FROM articles"), desc="Collecting all ID-Title pairs from Wikipedia database."):
                 title_to_id[title] = article_id

@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"name": "VAULT",
+			"path": "."
+		},
+		{
+			"name": "lvpoellhuber",
+			"path": "../../../../../Tmp/lvpoellhuber"
+		},
+		{
+			"name": "poellhul",
+			"path": "../../../../../data/rech/poellhul"
+		},
+		{
+			"name": "benchmarkIR-slurm",
+			"path": "../benchmarkIR-slurm"
+		}
+	],
+	"settings": {}
+}

@@ -11,9 +11,6 @@ python preprocessing/nq.py
 echo "Processing WikIR."
 python preprocessing/wikir.py 
 
-echo "Processing SciDocs." 
-python preprocessing/scidocs.py 
-
 echo "Processing CORD19." 
 python preprocessing/cord19.py
 

@@ -123,9 +123,11 @@ class BertRetriever(nn.Module):
         self.training = False
 
 class LongtrieverRetriever(BertRetriever):
-    def forward(self, query_input_ids, query_attention_mask, corpus_input_ids, corpus_attention_mask, **kwargs):
+    def __init__(self, model, data_collator=DataCollatorForEvaluatingBert("bert-base-uncased", 512, 512, 8), normalize=False, loss_function="contrastive"):
+        super().__init__(model, data_collator, normalize, loss_function)
 
-        corpus_embeddings = self.encoder(corpus_input_ids, corpus_attention_mask)
+    def forward(self, query_input_ids, query_attention_mask, corpus_input_ids, corpus_embeds, corpus_attention_mask, **kwargs):
+        corpus_embeddings = self.encoder(corpus_input_ids, corpus_attention_mask, input_blocks=corpus_embeds)
         query_embeddings = self.encoder(query_input_ids, query_attention_mask)
         co_query_embeddings = torch.cat(self._gather_tensor(query_embeddings.contiguous()))
         co_corpus_embeddings = torch.cat(self._gather_tensor(corpus_embeddings.contiguous()))

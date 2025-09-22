@@ -19,21 +19,18 @@ class Cord19Processor(DatasetProcessor):
                 with open(local_path, 'w') as f:
                     f.write(r.text) 
 
-        cord_url = "https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases/cord-19_"
-        dates = ["2020-04-10", "2020-05-01", "2020-05-19", "2020-06-19", "2020-07-16"]
+        cord_url = "https://ai2-semanticscholar-cord-19.s3-us-west-2.amazonaws.com/historical_releases/cord-19_2020-07-16.tar.gz"
 
-        for date in dates:
-            file_url = cord_url+date+".tar.gz"
-            local_path = os.path.join(self.download_dir, "cord-19_"+date+".tar.gz")
+        local_path = os.path.join(self.download_dir, "cord-19_2020-07-16.tar.gz")
 
-            if not os.path.exists(local_path) or self.overwrite:
-                with requests.get(file_url, stream=True) as r:
-                    r.raise_for_status()
-                    with open(local_path, 'wb') as f:
-                        for chunk in tqdm(r.iter_content(chunk_size=1024*1024)):
-                            f.write(chunk) 
-            else:
-                log_message(f"Data already downloaded. ")
+        if not os.path.exists(local_path) or self.overwrite:
+            with requests.get(cord_url, stream=True) as r:
+                r.raise_for_status()
+                with open(local_path, 'wb') as f:
+                    for chunk in tqdm(r.iter_content(chunk_size=1024*1024)):
+                        f.write(chunk) 
+        else:
+            log_message(f"Data already downloaded. ")
 
 
     def process_corpus(self):
@@ -131,7 +128,35 @@ class Cord19Processor(DatasetProcessor):
                         f.write(f"{qid}\t{cord_id}\t{score}\n")
         else:
             log_message(f"Qrels for test already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
-            
+
+    def process_short_dataset(self):
+        dataset = ir_datasets.load("cord19/trec-covid")
+        corpus_ids = self._get_cord_ids()
+
+        short_corpus_path = os.path.join(self.short_dataset_dir, "corpus.jsonl")
+
+        with open(short_corpus_path, "w", encoding="utf-8") as f:
+            for doc in dataset.docs_iter():
+                docid = doc.doc_id
+                if docid in corpus_ids:
+                    doc_obj = {
+                        "_id": docid,
+                        "text": doc.text, 
+                        "title": doc.title
+                    }
+                    f.write(json.dumps(doc_obj) + "\n")
+
+        short_queries_path = os.path.join(self.short_dataset_dir, "queries.jsonl")
+        queries_path = os.path.join(self.dataset_dir, "queries.jsonl")
+        if not os.path.exists(queries_path):
+            raise Exception(f"Queries not found at {queries_path}. Please run full dataset processing first.")
+        shutil.copy(queries_path, short_queries_path)
+
+        short_qrel_path = os.path.join(self.short_dataset_dir, "qrels", "test.tsv")
+        qrel_path = os.path.join(self.qrel_dir, "test.tsv")
+        if not os.path.exists(qrel_path):
+            raise Exception(f"Qrels not found at {qrel_path}. Please run full dataset processing first.")
+        shutil.copy(qrel_path, short_qrel_path)
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -141,3 +166,4 @@ if __name__ == "__main__":
     processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
+    processor.process_short_dataset()

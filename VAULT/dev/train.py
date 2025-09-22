@@ -7,7 +7,7 @@ import json
 dotenv.load_dotenv()
 import warnings
 
-from model.data_handler import DatasetForFineTuning,DatasetForFineTuningNegatives,DataCollatorForFineTuningLongtriever,DataCollatorForFineTuningHierarchicalLongtriever,DatasetForPretraining,LongtrieverCollator,DataCollatorForFineTuningBert
+from model.data_handler import DatasetForFineTuning,DatasetForFineTuningNegatives,DataCollatorForFineTuningLongtriever,DataCollatorForFineTuningHierarchicalLongtriever,LongtrieverCollator,DataCollatorForFineTuningBert
 from model.modeling_longtriever import Longtriever, LongtrieverForPretraining
 from model.modeling_hierarchical import HierarchicalLongtriever
 from model.modeling_retriever import LongtrieverRetriever, BertRetriever
@@ -70,16 +70,13 @@ def get_model(model_args, data_args):
     return model
 
 def get_dataset(model_args, data_args, training_args):
-    if "pretrain" in model_args.model_type: # Pretrained dataset if we're pretraining
-        dataset = DatasetForPretraining(data_args)
-    else:
-        if data_args.negatives: # Negative dataset if wer're fine-tuning with negatives
-            assert training_args.per_device_train_batch_size % 2 == 0, "Batch size must be even when using negatives."
-            training_args.per_device_train_batch_size = training_args.per_device_train_batch_size // 2
-            dataset = DatasetForFineTuningNegatives(data_args)
-        else: # Normal dataset for fine-tuning otherwise
-            dataset = DatasetForFineTuning(data_args)
-            log_message(f"Streaming data: {dataset.streaming}", print_message=True)
+   
+    if data_args.negatives: # Negative dataset if wer're fine-tuning with negatives
+        assert training_args.per_device_train_batch_size % 2 == 0, "Batch size must be even when using negatives."
+        training_args.per_device_train_batch_size = training_args.per_device_train_batch_size // 2
+        dataset = DatasetForFineTuningNegatives(data_args)
+    else: # Normal dataset for fine-tuning otherwise
+        dataset = DatasetForFineTuning(data_args)
 
     return dataset
 
@@ -112,7 +109,7 @@ def get_data_collator(model_args, data_args):
             )
     elif model_args.model_type=="bert":
         log_message("Loading dataset for fine-tuning")
-        data_collator=DataCollatorForFineTuningBert(
+        data_collator=DataCollatorForFineTuningBert(    
                 tokenizer,
                 data_args.max_query_length,
                 data_args.max_corpus_length,
@@ -127,7 +124,7 @@ def get_data_collator(model_args, data_args):
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "longtriever_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("dev", "hier_test.json"))
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()

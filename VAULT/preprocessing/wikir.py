@@ -16,7 +16,7 @@ class WikIRProcessor(DatasetProcessor):
     def download(self):
         file_url = "https://zenodo.org/records/3707238/files/enwikIRS.zip?download=1"
 
-        download_path = os.path.join(self.download_dir, "DORIS-enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
 
         if not os.path.exists(download_path) or self.overwrite:
             with requests.get(file_url, stream=True) as r:
@@ -28,7 +28,7 @@ class WikIRProcessor(DatasetProcessor):
             log_message(f"File already exists at {download_path}. Skipping download.", print_message=True)
 
     def process_corpus(self):
-        download_path = os.path.join(self.download_dir, "DORIS-enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
         corpus_path = os.path.join(self.dataset_dir, "corpus.jsonl")
 
         if not os.path.exists(corpus_path) or self.overwrite:
@@ -50,7 +50,7 @@ class WikIRProcessor(DatasetProcessor):
             log_message(f"Corpus already exists at {corpus_path}. Skipping corpus processing.", print_message=True)
 
     def process_queries(self):
-        download_path = os.path.join(self.download_dir, "DORIS-enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
         queries_path = os.path.join(self.dataset_dir, "queries.jsonl")
     
         if not os.path.exists(queries_path) or self.overwrite:
@@ -73,7 +73,7 @@ class WikIRProcessor(DatasetProcessor):
             log_message(f"Queries already exist at {queries_path}. Skipping query processing.", print_message=True)
 
     def process_qrels(self):
-        download_path = os.path.join(self.download_dir, "DORIS-enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
         log_message(f"Processing qrels into {self.qrel_dir}.", print_message=True)
 
         with zipfile.ZipFile(download_path, 'r') as zf:
@@ -93,6 +93,8 @@ class WikIRProcessor(DatasetProcessor):
                 else:
                     log_message(f"Qrels for {subset} already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
 
+    def process_short_dataset(self):
+        log_message("No short dataset available for WikIR. Skipping.", print_message=True)
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -102,3 +104,4 @@ if __name__ == "__main__":
     processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
+    processor.process_short_corpus()

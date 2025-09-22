@@ -10,6 +10,7 @@ class DataTrainingArguments:
     tokenizer_name: Optional[str] = field(default="bert-base-uncased")
     query_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/queries.jsonl")
     corpus_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/corpus.jsonl")
+    index_dir: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc")
     qrels_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/qrels/train.tsv")
     nqrels_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/nqrels/train.tsv")
     max_query_length: Optional[int] = field(default=512)

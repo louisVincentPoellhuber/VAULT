@@ -77,7 +77,7 @@ def evaluate(index_dir, results, qrels):
 
 def run_baseline(datasets, baseline, baseline_dir, batch_size=100000):
     for dataset in datasets:
-        print(f"\n=== Processing {dataset} ===")
+        log_message(f"\n=== Processing {dataset} ===", print_message=True)
         corpus, queries, qrels = VaultDataLoader(dataset).load("test")
 
         index_dir = os.path.join(baseline_dir, dataset)
@@ -93,7 +93,7 @@ def run_baseline(datasets, baseline, baseline_dir, batch_size=100000):
 
 if __name__ == "__main__":
     # Example datasets
-    datasets = ["hotpotqa", "nq", "wikir", "scidocs", "cord19", "doris-mae"] 
+    datasets = ["hotpotqa", "nq", "wikir", "cord19", "doris-mae"] 
 
     vault_dir = os.getenv("VAULT_DIR")
     if vault_dir == None: # TODO: Remove

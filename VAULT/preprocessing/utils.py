@@ -102,24 +102,27 @@ class PairsDataset(torch.utils.data.Dataset):
         torch.save(self.pairs, save_path)
 
 class DatasetProcessor():
-    def __init__(self, datapath, dataset_name, corpus_name, overwrite=False):
+    def __init__(self, datapath, dataset_name, overwrite=False):
         self.name = dataset_name
-        self.corpus_name = corpus_name
 
-        dataset_dir, download_dir, qrel_dir = self._make_folders(datapath, dataset_name, corpus_name)
+        dataset_dir, download_dir, qrel_dir, short_dataset_dir = self._make_folders(datapath, dataset_name)
         self.dataset_dir = dataset_dir
         self.download_dir = download_dir
         self.qrel_dir = qrel_dir
+        self.short_dataset_dir = short_dataset_dir
 
         self.overwrite = overwrite
 
     
-    def _make_folders(self, datapath, dataset_name, corpus_name):
+    def _make_folders(self, datapath, dataset_name):
         vault_dir = datapath
         os.makedirs(vault_dir, exist_ok=True)
 
         dataset_dir = os.path.join(vault_dir, dataset_name)
         os.makedirs(dataset_dir, exist_ok=True)
+
+        short_dataset_dir = os.path.join(vault_dir, dataset_name+"_short")
+        os.makedirs(short_dataset_dir, exist_ok=True)
 
         download_dir = os.path.join(dataset_dir, "downloads")
         os.makedirs(download_dir, exist_ok=True)
@@ -127,7 +130,7 @@ class DatasetProcessor():
         qrel_dir = os.path.join(dataset_dir, "qrels")
         os.makedirs(qrel_dir, exist_ok=True)
 
-        return dataset_dir, download_dir, qrel_dir
+        return dataset_dir, short_dataset_dir, download_dir, qrel_dir
 
     @abstractmethod
     def download(self):
@@ -135,6 +138,10 @@ class DatasetProcessor():
 
     @abstractmethod
     def process_corpus(self):
+        pass
+
+    @abstractmethod
+    def process_short_dataset(self):
         pass
 
     @abstractmethod

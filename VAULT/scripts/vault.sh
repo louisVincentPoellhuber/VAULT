@@ -8,4 +8,4 @@ bash scripts/vault_experiments.sh
 
 bash scripts/process_all.sh
 
-python baselines.py
+# python baselines.py

@@ -295,6 +295,8 @@ class DorisMAEProcessor(DatasetProcessor):
             else:
                 log_message(f" Qrels for {self.subsets[i]} already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
         
+    def process_short_dataset(self):
+        pass
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -304,3 +306,4 @@ if __name__ == "__main__":
     processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
+    processor.process_short_dataset()

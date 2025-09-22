@@ -115,7 +115,7 @@ def get_dataloader(model, model_args, data_args, training_args):
         corpus_chunk_size = 50000
 
     dataloader = VaultDataLoader(data_args.task)
-    corpus, queries, qrels = dataloader.load(split="test")
+    corpus, queries, qrels = dataloader.load(split="train")
 
     if dataloader.corpus_file.endswith("db"):
         faiss_search = StreamedFlatIPFaissSearch(model, batch_size=training_args.eval_batch_size, corpus_chunk_size=corpus_chunk_size) 
@@ -175,7 +175,7 @@ def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
         # TODO: Remove configs maybe?
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "dpr_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("dev", "dpr_test.json"))
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -199,10 +199,6 @@ def main():
     faiss_search, corpus, queries, qrels = get_dataloader(model, model_args, data_args, training_args)
 
     index_corpus(corpus, faiss_search, training_args)
-        
-    log_message(f"========================= Results for:s {training_args.run_name}.=========================")
-    retrieve_and_eval(corpus, queries, qrels, faiss_search, training_args)
 
-if __name__ == "__main__":    
-    
+if __name__ == "__main__":
     main()

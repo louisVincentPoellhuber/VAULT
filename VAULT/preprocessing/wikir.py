@@ -14,9 +14,9 @@ class WikIRProcessor(DatasetProcessor):
         log_message("This dataset uses a 'training', 'test' and 'validation' split. These will be renamed to 'train', 'test' and 'val' respectively for consistency.", print_message=True)
      
     def download(self):
-        file_url = "https://zenodo.org/records/3707238/files/enwikIRS.zip?download=1"
+        file_url = "https://zenodo.org/records/3707606/files/enwikIR.zip?download=1"
 
-        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIR.zip")
 
         if not os.path.exists(download_path) or self.overwrite:
             with requests.get(file_url, stream=True) as r:
@@ -28,14 +28,14 @@ class WikIRProcessor(DatasetProcessor):
             log_message(f"File already exists at {download_path}. Skipping download.", print_message=True)
 
     def process_corpus(self):
-        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIR.zip")
         corpus_path = os.path.join(self.dataset_dir, "corpus.jsonl")
 
         if not os.path.exists(corpus_path) or self.overwrite:
             with zipfile.ZipFile(download_path, 'r') as zf, \
                 open(corpus_path, 'w', encoding='utf-8') as corpus_file:
                 
-                with zf.open('enwikIRS/documents.csv') as f:
+                with zf.open('enwikIR/documents.csv') as f:
                     reader = csv.reader(io.TextIOWrapper(f, 'utf-8'))
                     # Skip header
                     next(reader)
@@ -50,7 +50,7 @@ class WikIRProcessor(DatasetProcessor):
             log_message(f"Corpus already exists at {corpus_path}. Skipping corpus processing.", print_message=True)
 
     def process_queries(self):
-        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIR.zip")
         queries_path = os.path.join(self.dataset_dir, "queries.jsonl")
     
         if not os.path.exists(queries_path) or self.overwrite:
@@ -59,7 +59,7 @@ class WikIRProcessor(DatasetProcessor):
                 open(queries_path, 'w', encoding='utf-8') as queries_file:
                 
                 for subset in self.subsets:
-                    with zf.open(f'enwikIRS/{subset}/queries.csv') as f:
+                    with zf.open(f'enwikIR/{subset}/queries.csv') as f:
                         reader = csv.reader(io.TextIOWrapper(f, 'utf-8'))
                         # Skip header
                         next(reader)
@@ -73,7 +73,7 @@ class WikIRProcessor(DatasetProcessor):
             log_message(f"Queries already exist at {queries_path}. Skipping query processing.", print_message=True)
 
     def process_qrels(self):
-        download_path = os.path.join(self.download_dir, "enwikIRS.zip")
+        download_path = os.path.join(self.download_dir, "enwikIR.zip")
         log_message(f"Processing qrels into {self.qrel_dir}.", print_message=True)
 
         with zipfile.ZipFile(download_path, 'r') as zf:
@@ -82,13 +82,13 @@ class WikIRProcessor(DatasetProcessor):
 
                 if not os.path.exists(qrel_path) or self.overwrite:
                     
-                    with zf.open(f'enwikIRS/{subset}/qrels') as f, \
+                    with zf.open(f'enwikIR/{subset}/qrels') as f, \
                      open(qrel_path, 'w', encoding='utf-8') as qrel_file:
                         reader = csv.reader(io.TextIOWrapper(f, 'utf-8'))
 
                         for row in reader:
                             row = row[0].strip().split('\t')
-                            if row[3] == "1":
+                            if int(row[3]) > 0:
                                 qrel_file.write(f"{row[0]}\t{row[2]}\t{row[3]}\n")
                 else:
                     log_message(f"Qrels for {subset} already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
@@ -104,4 +104,4 @@ if __name__ == "__main__":
     processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
-    processor.process_short_corpus()
+    processor.process_short_dataset()

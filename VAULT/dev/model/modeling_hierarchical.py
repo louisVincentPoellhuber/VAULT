@@ -134,6 +134,8 @@ class HierarchicalLongtrieverEmbeddings(BertEmbeddings):
             cls_token = word_input_embeds[:, :, 0:1, :].clone() # CLS token for each block
             sep_token = word_input_embeds[:, :, -1:, :].clone() # SEP
             input_embeds = torch.cat([cls_token, input_embeds, sep_token], dim=2) # Add CLS and SEP tokens to the input embeddings
+        else:
+            input_embeds = word_input_embeds
 
         if nb_blocks>1: # If we have more than one block
             block_input_embeds, block_attention_mask, token_type_ids = self.add_blockwise_cls_tokens(input_embeds, attention_mask, token_type_ids)
@@ -330,7 +332,7 @@ class HierarchicalLongtriever(Longtriever):
         block_mask = torch.cat([torch.ones_like(block_mask[:,:1]),block_mask],dim=1)
 
         if input_blocks is not None:
-            batch_size, nb_blocks, seq_length, hidden_size = input_blocks.size()
+            batch_size, nb_blocks, _, hidden_size = input_blocks.size()
             _, _, seq_length = input_ids.size()
             seq_length += nb_blocks - 1 #+ 2 # Add the bCLS, and other CLS and SEP special tokens
 
@@ -343,10 +345,9 @@ class HierarchicalLongtriever(Longtriever):
 
             embedding_output, block_attention_mask = self.embeddings(input_ids=input_ids, attention_mask=attention_mask)
 
-        # block here
-        embedding_output = embedding_output.view(batch_size*nb_blocks,embedding_output.shape[2], embedding_output.shape[3])
+        embedding_output = embedding_output.view(batch_size*nb_blocks,seq_length, embedding_output.shape[3])
 
-        block_attention_mask = block_attention_mask.view(batch_size*nb_blocks,block_attention_mask.shape[2])
+        block_attention_mask = block_attention_mask.view(batch_size*nb_blocks,seq_length)
         extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(block_attention_mask) #[B*N,1,1,1+L] L is sequence length. [24, 1, 1,513]
         extended_block_mask = (1.0 - block_mask[:, None, None, :]) * -10000.0
 

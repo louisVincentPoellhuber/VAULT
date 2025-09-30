@@ -245,7 +245,7 @@ class DorisMAEProcessor(DatasetProcessor):
         cursor = connection.cursor()
 
         abs2arxiv = {}
-        cursor.execute("SELECT id, title FROM articles")
+        # cursor.execute("SELECT id, title FROM articles")
         for arxiv_id, abs_id in tqdm(cursor.execute("SELECT id, abstract_id FROM articles"), desc="Collecting all Arxiv ID - Abstract ID pairs from Arxiv database."):
             abs2arxiv[abs_id] = arxiv_id
 

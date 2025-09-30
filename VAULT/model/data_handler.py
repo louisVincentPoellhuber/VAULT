@@ -278,10 +278,9 @@ class VaultDataLoader(GenericDataLoader):
             "wikir",
             "hotpotqa",
             "nq",
-            "scidocs",
             "doris-mae",
-            "nfcorpus", 
-            "cord19"
+            "cord19", 
+            "wikipedia"
         ]
 
         data_folder = os.getenv("VAULT_DIR")
@@ -289,7 +288,7 @@ class VaultDataLoader(GenericDataLoader):
             raise ValueError("Please set the VAULT_DIR environment variable to the root folder of the VAULT datasets.")
 
         if dataset_name:
-            if dataset_name not in self.datasets:
+            if dataset_name.split("_")[0] not in self.datasets:
                 raise ValueError(f"Dataset {dataset_name} does not exist in VAULT. Please select a dataset from: wikir, hotpotqa, nq, scidocs, doris-mae, nfcorpus, cord19, bioasq.")
             
             dataset_path = os.path.join(data_folder, dataset_name)

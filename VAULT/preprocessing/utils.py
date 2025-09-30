@@ -105,11 +105,11 @@ class DatasetProcessor():
     def __init__(self, datapath, dataset_name, overwrite=False):
         self.name = dataset_name
 
-        dataset_dir, download_dir, qrel_dir, short_dataset_dir = self._make_folders(datapath, dataset_name)
+        dataset_dir, short_dataset_dir, download_dir, qrel_dir = self._make_folders(datapath, dataset_name)
         self.dataset_dir = dataset_dir
+        self.short_dataset_dir = short_dataset_dir
         self.download_dir = download_dir
         self.qrel_dir = qrel_dir
-        self.short_dataset_dir = short_dataset_dir
 
         self.overwrite = overwrite
 

@@ -200,7 +200,7 @@ class VaultDataLoader(GenericDataLoader):
             "doris-mae",
             "nfcorpus", 
             "cord19", 
-            "test"
+            "wikipedia"
         ]
 
         data_folder = os.getenv("VAULT_DIR")
@@ -208,7 +208,7 @@ class VaultDataLoader(GenericDataLoader):
             raise ValueError("Please set the VAULT_DIR environment variable to the root folder of the VAULT datasets.")
 
         if dataset_name:
-            if dataset_name not in self.datasets:
+            if dataset_name.split("_")[0] not in self.datasets:
                 raise ValueError(f"Dataset {dataset_name} does not exist in VAULT. Please select a dataset from: wikir, hotpotqa, nq, scidocs, doris-mae, nfcorpus, cord19, bioasq.")
             
             dataset_path = os.path.join(data_folder, dataset_name)
@@ -297,7 +297,7 @@ class DatasetForFineTuning(torch.utils.data.Dataset):
             query_str=self.id2query[query_id].get("text","")
             return [query_str,corpus_embeds]
         else:
-            return ["", ""]
+            return ["", torch.rand((1, 768))]
             
 
 
@@ -447,15 +447,13 @@ class DataCollatorForFineTuningHierarchicalLongtriever:
         else:
             raise TypeError
      
-    def tokenize(self,string):
+    def tokenize(self,string, block_len):
         sentences = nltk.sent_tokenize(string)
         if not sentences:
             sentences = ["."]
         results = self.tokenizer(sentences, add_special_tokens=False, truncation=False, return_attention_mask=False,
                                  return_token_type_ids=False, verbose=False)
 
-        num_special_tokens = 1 + self.start_separator + self.text_separator + self.end_separator
-        block_len = self.max_corpus_length - num_special_tokens - (self.max_corpus_sent_num - 1)
         cls_token_id = self.tokenizer.cls_token_id
         sep_token_id = self.tokenizer.sep_token_id
         
@@ -503,10 +501,10 @@ class DataCollatorForFineTuningHierarchicalLongtriever:
             "attention_mask_blocks": attention_mask_blocks,
         }
     
-    def blockify_embeds(self,embeds):
+    def blockify_inputs(self,embeds):
         num_special_tokens = 2 # CLS and SEP
-        num_blocks = min(len(embeds)//self.max_corpus_length+1, self.max_corpus_sent_num) # This time I KNOW how many "words" there are : there is no tokenization here
-        block_len = min(self.max_corpus_length - num_special_tokens - (num_blocks - 1), len(embeds)) # Maximum heuristic, OR just the number of input tokens, if it's small enough
+        nb_blocks = min(len(embeds)//self.max_corpus_length+1, self.max_corpus_sent_num) # This time I KNOW how many "words" there are : there is no tokenization here
+        block_len = min(self.max_corpus_length - num_special_tokens - (nb_blocks - 1), len(embeds)) # Maximum heuristic, OR just the number of input tokens, if it's small enough
         attention_mask_blocks = []
 
         block_embeds = []
@@ -521,6 +519,8 @@ class DataCollatorForFineTuningHierarchicalLongtriever:
         return {
             "block_embeds": block_embeds,
             "attention_mask_blocks": attention_mask_blocks,
+            "block_len": block_len,
+            "nb_blocks": nb_blocks
         }
 
     def __call__(self, examples):
@@ -534,20 +534,22 @@ class DataCollatorForFineTuningHierarchicalLongtriever:
         for e in examples:
             query_str, corpus_embeds=e
 
-            query_results=self.tokenize(query_str)
+            blockify_results=self.blockify_inputs(corpus_embeds)
+            corpus_embeds_batch.append(tensorize_batch(blockify_results["block_embeds"], 0))
+            attention_mask = tensorize_batch(blockify_results["attention_mask_blocks"], 0)
+            corpus_attention_mask_batch.append(attention_mask)
+            block_len = blockify_results["block_len"]
+            nb_blocks = blockify_results["nb_blocks"]
+
+            query_results=self.tokenize(query_str, block_len)
             query_input_ids_batch.append(query_results['input_ids_blocks'])
             query_attention_mask_batch.append(query_results['attention_mask_blocks'])
 
             dummy_input = "[PAD] " * len(corpus_embeds)
-            num_blocks = min(len(corpus_embeds)//self.max_corpus_length+1, self.max_corpus_sent_num) # This time I KNOW how many "words" there are : there is no tokenization here
-            corpus_results=self.tokenize(dummy_input)
-            corpus_input_ids = corpus_results['input_ids_blocks'].repeat(num_blocks, 1)
+            corpus_results=self.tokenize(dummy_input, block_len)
+            corpus_input_ids = corpus_results['input_ids_blocks'].repeat(nb_blocks, 1)
             corpus_input_ids_batch.append(corpus_input_ids)          
 
-            blockify_results=self.blockify_embeds(corpus_embeds)
-            corpus_embeds_batch.append(tensorize_batch(blockify_results["block_embeds"], 0))
-            attention_mask = tensorize_batch(blockify_results["attention_mask_blocks"], 0)
-            corpus_attention_mask_batch.append(attention_mask)
 
 
         query_input_ids_batch = tensorize_batch(query_input_ids_batch, self.tokenizer.pad_token_id, align_right=self.align_right)  # [B,N,L]

@@ -4,6 +4,7 @@ import json
 import re
 import ir_datasets
 import nltk
+from tqdm import tqdm
 nltk.download('punkt')
 
 BLACKLIST_HEADERS = {
@@ -78,9 +79,9 @@ def split_text(text):
 
 def create_db(download_dir, db_dir, overwrite, split_fct = split_text):
     db_path = os.path.join(db_dir, "corpus.db")
-    dataset = ir_datasets.load(f"beir/hotpotqa/train")
-    train_qrels = list(dataset.qrels_iter())
-    relevant_doc_ids = set(qrel.doc_id for qrel in train_qrels)
+    # dataset = ir_datasets.load(f"beir/hotpotqa/train")
+    # train_qrels = list(dataset.qrels_iter())
+    # relevant_doc_ids = set(qrel.doc_id for qrel in train_qrels)
 
     if overwrite or not os.path.exists(db_path):
         # 1. Create database connection & table
@@ -101,7 +102,7 @@ def create_db(download_dir, db_dir, overwrite, split_fct = split_text):
         # 2. Walk through every file in every folder
         batch = [] 
         total_processed_pages = 0
-        for root, _, files in os.walk(download_dir):
+        for root, _, files in tqdm(os.walk(download_dir), total=len(os.listdir(download_dir))):
             for filename in files:
                 if filename.startswith("wiki_"):
                     filepath = os.path.join(root, filename)
@@ -110,22 +111,22 @@ def create_db(download_dir, db_dir, overwrite, split_fct = split_text):
                     with open(filepath, "r", encoding="utf-8") as f:
                         for line in f:
                             article = json.loads(line)
-                            if article["id"] in relevant_doc_ids:
-                                text = split_fct(article["text"])
-                                for i, part in enumerate(text):
-                                    id = f"{article['id']}-{i}"
-                                    batch.append((id, article["title"], part, article["url"]))
+                            # if article["id"] in relevant_doc_ids:
+                            text = split_fct(article["text"]) # So index everything
+                            for i, part in enumerate(text):
+                                id = f"{article['id']}-{i}"
+                                batch.append((id, article["title"], part, article["url"]))
                     
                     
                     if len(batch) >= 10000:
                         total_processed_pages+=len(batch)
-                        print(f"{total_processed_pages} pages processed.")
+                        # print(f"{total_processed_pages} sentences processed.")
                         cur.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?)", batch)
                         conn.commit()
                         batch.clear()
 
         total_processed_pages+=len(batch)
-        print(f"{total_processed_pages} pages processed.")
+        # print(f"{total_processed_pages} pages processed.")
         cur.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?)", batch)
         conn.commit()
         batch.clear()
@@ -182,7 +183,7 @@ def process_qrels(wikipedia_dir, qrel_dir, subsets, overwrite):
     connection.close()
 
 if __name__ == "__main__":
-    db_dir = "/Tmp/lvpoellhuber/datasets/vault/test"
+    db_dir = "/Tmp/lvpoellhuber/datasets/vault/hotpotqa_sentence"
     download_dir = "/Tmp/lvpoellhuber/datasets/vault/wikipedia/downloads"
     qrel_dir = db_dir+"/qrels"
 
@@ -193,4 +194,4 @@ if __name__ == "__main__":
 
     create_db(download_dir, db_dir, overwrite=False)
     process_queries(db_dir, overwrite=False)
-    process_qrels(db_dir, qrel_dir, subsets=["train"], overwrite=False)
+    process_qrels(db_dir, qrel_dir, subsets=["train", "test"], overwrite=False)

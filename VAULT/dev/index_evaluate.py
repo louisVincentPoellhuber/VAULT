@@ -19,7 +19,7 @@ from model.modeling_utils import *
 
 from beir.retrieval.evaluation import EvaluateRetrieval
 from beir.retrieval.search.dense import FlatIPFaissSearch
-from search import StreamedFlatIPFaissSearch, CustomFlatIPFaissSearch
+from search import StreamedFlatIPFaissSearch
 from transformers import AutoTokenizer, HfArgumentParser,TrainingArguments,BertModel,DPRContextEncoder, DPRQuestionEncoder
 
 STORAGE_DIR = os.getenv("STORAGE_DIR")
@@ -115,12 +115,12 @@ def get_dataloader(model, model_args, data_args, training_args):
         corpus_chunk_size = 50000
 
     dataloader = VaultDataLoader(data_args.task)
-    corpus, queries, qrels = dataloader.load(split="test")
+    corpus, queries, qrels = dataloader.load(split="train")
 
     if dataloader.corpus_file.endswith("db"):
         faiss_search = StreamedFlatIPFaissSearch(model, batch_size=training_args.eval_batch_size, corpus_chunk_size=corpus_chunk_size) 
     else:
-        faiss_search = CustomFlatIPFaissSearch(model, batch_size=training_args.eval_batch_size, corpus_chunk_size=corpus_chunk_size) 
+        faiss_search = FlatIPFaissSearch(model, batch_size=training_args.eval_batch_size, corpus_chunk_size=corpus_chunk_size) 
 
     return faiss_search, corpus, queries, qrels
 
@@ -154,16 +154,28 @@ def retrieve_and_eval(corpus, queries, qrels, faiss_search, training_args):
     ndcg, _map, recall, precision, mrr = retriever.evaluate(qrels, results, retriever.k_values)
     
 
-    metrics_path = os.path.join(training_args.output_dir, f"{training_args.run_name}_metrics.txt")
+    metrics_path = os.path.join(training_args.output_dir, f"metrics.txt")
     with open(metrics_path, "w") as metrics_file:
         metrics_file.write("Retriever evaluation for k in: {}".format(retriever.k_values))
         metrics_file.write(f"\nNDCG: {ndcg}\nRecall: {recall}\nPrecision: {precision}\nMAP: {_map}\nMRR: {mrr}\n")
+
+        top_k = 10
+
+        query_id, ranking_scores = random.choice(list(results.items()))
+        scores_sorted = sorted(ranking_scores.items(), key=lambda item: item[1], reverse=True)
+        metrics_file.write("Query : %s\n" % queries[query_id])
+
+        for rank in range(top_k):
+            doc_id = scores_sorted[rank][0]
+            # Format: Rank x: ID [Title] Body
+            metrics_file.write("Rank %d: %s [%s] - %s\n" % (rank+1, doc_id, corpus[doc_id].get("title"), corpus[doc_id].get("text")))
+
 
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
         # TODO: Remove configs maybe?
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "dpr_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("dev", "dpr_test.json"))
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -187,10 +199,9 @@ def main():
     faiss_search, corpus, queries, qrels = get_dataloader(model, model_args, data_args, training_args)
 
     index_corpus(corpus, faiss_search, training_args)
-        
-    log_message(f"========================= Results for: {training_args.run_name}.=========================")
-    retrieve_and_eval(corpus, queries, qrels, faiss_search, training_args)
 
-if __name__ == "__main__":    
-    
+    if data_args.evaluate:
+        retrieve_and_eval(corpus, queries, qrels, faiss_search, training_args)
+
+if __name__ == "__main__":
     main()

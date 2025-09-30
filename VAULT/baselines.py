@@ -65,7 +65,7 @@ def get_bm25_results(index_dir, queries):
 
 
 def evaluate(index_dir, results, qrels): 
-    k_values = [1, 5, 10, 20, 100] # Change if you want
+    k_values = [1, 3, 5, 10, 100, 1000] # Change if you want
     evaluator = CustomEvaluateRetrieval(None)
     ndcg, _map, recall, precision, mrr = evaluator.evaluate(qrels, results, k_values)
     

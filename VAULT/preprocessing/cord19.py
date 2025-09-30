@@ -124,7 +124,7 @@ class Cord19Processor(DatasetProcessor):
                 for line in qrel_in.readlines():
                     qid, _, cord_id, score = line.strip().split(" ")
 
-                    if cord_id in cord_ids:
+                    if (cord_id in cord_ids) and (score!="0"):
                         f.write(f"{qid}\t{cord_id}\t{score}\n")
         else:
             log_message(f"Qrels for test already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
@@ -136,12 +136,12 @@ class Cord19Processor(DatasetProcessor):
         short_corpus_path = os.path.join(self.short_dataset_dir, "corpus.jsonl")
 
         with open(short_corpus_path, "w", encoding="utf-8") as f:
-            for doc in dataset.docs_iter():
+            for doc in tqdm(dataset.docs_iter()):
                 docid = doc.doc_id
                 if docid in corpus_ids:
                     doc_obj = {
                         "_id": docid,
-                        "text": doc.text, 
+                        "text": doc.abstract, 
                         "title": doc.title
                     }
                     f.write(json.dumps(doc_obj) + "\n")
@@ -152,7 +152,9 @@ class Cord19Processor(DatasetProcessor):
             raise Exception(f"Queries not found at {queries_path}. Please run full dataset processing first.")
         shutil.copy(queries_path, short_queries_path)
 
-        short_qrel_path = os.path.join(self.short_dataset_dir, "qrels", "test.tsv")
+        short_qrel_dir = os.path.join(self.short_dataset_dir, "qrels")
+        os.makedirs(short_qrel_dir, exist_ok=True)
+        short_qrel_path = os.path.join(short_qrel_dir, "test.tsv")
         qrel_path = os.path.join(self.qrel_dir, "test.tsv")
         if not os.path.exists(qrel_path):
             raise Exception(f"Qrels not found at {qrel_path}. Please run full dataset processing first.")

@@ -25,6 +25,7 @@ class DataTrainingArguments:
     base_model_postfix: Optional[str] = field(default="true")
     negatives: Optional[bool] = field(default=False)
     streaming: Optional[bool] = field(default=False)
+    evaluate: Optional[bool] = field(default=False)
 
 @dataclass
 class ModelArguments:

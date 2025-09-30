@@ -9,120 +9,40 @@ WIKI = wikipediaapi.Wikipedia(USER_AGENT, language='en')  # 'en' for English
 import re
 import json
 
-BLACKLIST_HEADERS = {
-    "References", "Bibliography", "Notes", "External links", "See also",
-    "Citations", "Further reading", "Sources"
-}
-
-def is_header(line):
-    """Heuristic: detect if a line is a section header."""
-    if not line:
-        return False
     
-    if not line[0].isupper():
-        return False
-    if not line.endswith("."):
-        return False
-    
-    words = line.split()
-    if len(words) > 8:
-        return False
-    
-    header_name = line.rstrip(".")
-    if header_name in BLACKLIST_HEADERS:
-        return False
-    
-    if len(words) <= 6 and not re.search(r"[!?]", line):
-        return True
-    
-    return False
-
-
-def chunk_text(text, max_words):
-    """Split text into chunks of at most max_words."""
-    words = text.split()
-    chunks = []
-    for i in range(0, len(words), max_words):
-        chunk = " ".join(words[i:i+max_words])
-        chunks.append(chunk)
-    return chunks
-
-
-def split_sections(text, max_words=512):
-    lines = [l.strip() for l in text.split("\n") if l.strip()]
-    sections = []
-    current_header = "Introduction"
-    current_text = []
-
-    for line in lines:
-        if is_header(line):
-            # Save the previous section if it has content
-            if current_text:
-                full_text = current_header + ". " + " ".join(current_text).strip()
-                sections.extend(chunk_text(full_text, max_words))
-                current_text = []
-            current_header = line.rstrip(".")
-        else:
-            current_text.append(line)
-
-    # Save the last section
-    if current_text:
-        full_text = current_header + ". " + " ".join(current_text).strip()
-        sections.extend(chunk_text(full_text, max_words))
-
-    return sections
-    
-def make_wikipedia_folders(vault_dir):
-    wikipedia_dir = os.path.join(vault_dir, "wikipedia")
-    os.makedirs(wikipedia_dir, exist_ok=True)
-
-    wikipedia_download_dir = os.path.join(wikipedia_dir, "downloads")
-    os.makedirs(wikipedia_download_dir, exist_ok=True)
-
-    return wikipedia_dir, wikipedia_download_dir
-
-def download_wikipedia(output_dir, overwrite):
-    url = "https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-pages-articles.xml.bz2"
-    zip_out_path = os.path.join(output_dir,"enwiki-latest-pages-articles.xml.bz2")
-
-    if overwrite or not os.path.exists(zip_out_path):
-        print("Downloading compressed file.")
-        headers = {
-            "User-Agent": USER_AGENT
-        }
+class WikipediaProcessor(DatasetProcessor):
+    def __init__(self, datapath, overwrite):
+        super().__init__(datapath, "wikipedia", overwrite)
+        self.datapath = datapath
+        self.db_path = os.path.join(self.dataset_dir, "corpus.db")
+        self.connection = sqlite3.connect(self.db_path)
+        self.cursor = self.connection.cursor()
+        self.subsets = ["train", "test", "dev"]
+        self.norm_subset_name = {
+                "train": "train",
+                "dev": "train", 
+                "test": "test"
+            }
+        log_message("The HotPotQA dataset uses a 'dev' split which is unused for VAULT. For the purposes of this benchmark, it will be added to the 'train' split.", print_message=True)
         
-        response = requests.get(url, headers=headers, stream=True)
-        total_size = int(response.headers.get('content-length', 0))
-        block_size = 1024 * 1024  # 1MB
-        tqdm_bar = tqdm(total=total_size, unit='iB', unit_scale=True)
 
-        with open(zip_out_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=block_size):
-                if chunk:
-                    f.write(chunk)
-                    tqdm_bar.update(len(chunk))
-        tqdm_bar.close()
+    def download(self):
+        zip_out_path = os.path.join(self.download_dir,"enwiki-latest-pages-articles.xml.bz2")
 
+        if not os.path.exists(zip_out_path):
+           raise Exception("XML Dump not found. Please run extract_wikipedia.sh.")
+    
+    def _get_ids(self):
+        ids = set()
+        for id in tqdm(self.cursor.execute("SELECT id FROM articles"), desc="Collecting all Wikipedia IDs from database."):
+            ids.add(id[0])
 
-    xml_out_path = os.path.join(output_dir, "enwiki-latest-pages-articles.xml")
-    if overwrite or not os.path.exists(xml_out_path):
-        print("Extracting compressed file into XML.")
-        with bz2.open(zip_out_path, "rb") as source, \
-            open(xml_out_path, "wb") as dest:
-                shutil.copyfileobj(source, dest)
+        return ids
+    
+    def process_corpus(self):
+        self.download()
 
-    return xml_out_path
-
-def create_db(download_dir, db_dir, overwrite):
-    db_path = os.path.join(db_dir, "corpus.db")
-
-    if overwrite or not os.path.exists(db_path):
-        # 1. Create database connection & table
-        print("Creating database.")
-        conn = sqlite3.connect(db_path)
-        cur = conn.cursor()
-
-        cur.execute("""
+        self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY,
             title TEXT,
@@ -130,38 +50,126 @@ def create_db(download_dir, db_dir, overwrite):
             url TEXT
         )
         """)
-        conn.commit()
+        self.connection.commit()
 
-        # 2. Walk through every file in every folder
-        batch = [] 
-        total_processed_pages = 0
-        for root, _, files in os.walk(download_dir):
-            for filename in files:
-                if filename.startswith("wiki_"):
-                    filepath = os.path.join(root, filename)
+        # Simple hack to check if there are some IDs in the database
+        process = True
+        nb_ids = 0
+        for id in tqdm(self.cursor.execute("SELECT id FROM articles")):
+            nb_ids +=1
+            if nb_ids>10:
+                process=False
+                break
 
-                    # 3. Read file line-by-line (streaming, not loading whole file in memory)
-                    with open(filepath, "r", encoding="utf-8") as f:
-                        for line in f:
-                            article = json.loads(line)
+        if self.overwrite or process:
 
-                            batch.append((int(article["id"]), article["title"], article["text"], article["url"]))
-                    
-                    
-                    if len(batch) >= 10000:
-                        total_processed_pages+=len(batch)
-                        print(f"{total_processed_pages} pages processed.")
-                        cur.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?)", batch)
-                        conn.commit()
-                        batch.clear()
+            # 2. Walk through every file in every folder
+            batch = [] 
+            total_processed_pages = 0
+            for root, _, files in os.walk(self.download_dir):
+                for filename in files:
+                    if filename.startswith("wiki_"):
+                        filepath = os.path.join(root, filename)
 
-        total_processed_pages+=len(batch)
-        print(f"{total_processed_pages} pages processed.")
-        cur.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?)", batch)
-        conn.commit()
-        batch.clear()
-        
-        # 4. Close connection
-        conn.close()
-    else:
-        print("Database already exists. Skipping creation. ")
+                        # 3. Read file line-by-line (streaming, not loading whole file in memory)
+                        with open(filepath, "r", encoding="utf-8") as f:
+                            for line in f:
+                                article = json.loads(line)
+
+                                batch.append((int(article["id"]), article["title"], article["text"], article["url"]))
+                        
+                        
+                        if len(batch) >= 10000:
+                            total_processed_pages+=len(batch)
+                            print(f"{total_processed_pages} pages processed.")
+                            self.cursor.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?)", batch)
+                            self.connection.commit()
+                            batch.clear()
+
+            total_processed_pages+=len(batch)
+            print(f"{total_processed_pages} pages processed.")
+            self.cursor.executemany("INSERT OR IGNORE INTO articles VALUES (?, ?, ?, ?)", batch)
+            self.connection.commit()
+            batch.clear()
+        else:
+            print("Database already exists. Skipping creation. ")
+
+    def process_queries(self):
+        hpqa_path = os.path.join(self.datapath, "hotpotqa")
+        hpqa_queries = os.path.join(hpqa_path, "queries.jsonl")
+        nq_path = os.path.join(self.datapath, "nq")
+        nq_queries = os.path.join(nq_path, "queries.jsonl")
+
+        if not os.path.exists(hpqa_queries):
+            raise Exception("Dataset not found. Please process HotPotQA first, by running hotpotqa.py.")
+        if not os.path.exists(nq_queries):
+            raise Exception("Dataset not found. Please process NQ first, by running nq.py.")
+
+        wikipedia_queries = os.path.join(self.dataset_dir, "queries.jsonl")
+        with open(hpqa_queries, "r") as hpqa_in, open(nq_queries, "r") as nq_in, open(wikipedia_queries, "w") as wiki_out:
+            for line in hpqa_in:
+                wiki_out.write(line)
+            for line in nq_in:
+                wiki_out.write(line)
+
+    def process_qrels(self):
+        hpqa_qrel_dir = os.path.join(self.datapath, "hotpotqa", "qrels")
+        nq_qrel_dir = os.path.join(self.datapath, "nq", "qrels")
+
+        if not os.path.exists(hpqa_qrel_dir):
+            raise Exception("Dataset not found. Please process HotPotQA first, by running hotpotqa.py.")
+        if not os.path.exists(nq_qrel_dir):
+            raise Exception("Dataset not found. Please process NQ first, by running nq.py.")
+
+        qrel_dirs = [hpqa_qrel_dir, nq_qrel_dir]
+        for qrel_dir in qrel_dirs:
+            for subset in os.listdir(qrel_dir):
+                subset_path = os.path.join(qrel_dir, subset)
+                subset_name = self.norm_subset_name[subset.split(".")[0]]
+                wikipedia_qrels_subset = os.path.join(self.qrel_dir, subset_name+".tsv")
+
+                with open(subset_path, "r") as dataset_in, open(wikipedia_qrels_subset, "a") as wiki_out:
+                    for line in dataset_in:
+                        wiki_out.write(line)
+
+    def process_short_dataset(self):
+        datasets = ["hotpotqa", "nq"]
+
+        wikipedia_corpus_path = os.path.join(self.short_dataset_dir, "corpus.jsonl")
+        wikipedia_queries_path = os.path.join(self.short_dataset_dir, "queries.jsonl")
+        wikipedia_qrels_dir = os.path.join(self.short_dataset_dir, "qrels")
+        os.makedirs(wikipedia_qrels_dir, exist_ok=True)
+
+        for dataset in datasets:
+            dataset_dir = os.path.join(self.datapath, dataset+"_short")
+            corpus_path = os.path.join(dataset_dir, "corpus.jsonl")
+            queries_path = os.path.join(dataset_dir, "queries.jsonl")
+            qrel_dir = os.path.join(dataset_dir, "qrels")
+
+            if (not os.path.exists(corpus_path)) or (not os.path.exists(queries_path)) or (not os.path.exists(qrel_dir)):
+                raise Exception(f"Short dataset not found. Please process {dataset} first by running {dataset}.py.")
+            
+            with open(corpus_path, "r") as corpus_in, open(queries_path, "r") as queries_in, \
+                open(wikipedia_corpus_path, "a") as corpus_out, open(wikipedia_queries_path, "a") as queries_out:
+                    for line in corpus_in:
+                        corpus_out.write(line)
+                    for line in queries_in:
+                        queries_out.write(line)
+
+            for subset in os.listdir(qrel_dir):
+                subset_path = os.path.join(qrel_dir, subset)
+                subset_name = self.norm_subset_name[subset.split(".")[0]]
+                wikipedia_qrels_subset = os.path.join(wikipedia_qrels_dir, subset_name+".tsv")
+
+                with open(subset_path, "r") as dataset_in, open(wikipedia_qrels_subset, "a") as wiki_out:
+                    for line in dataset_in:
+                        wiki_out.write(line)
+
+if __name__ == "__main__":
+    args = parse_arguments()
+    processor = WikipediaProcessor(args.datapath, args.overwrite)
+    
+    processor.process_corpus()
+    processor.process_queries()
+    processor.process_qrels()
+    processor.process_short_dataset()

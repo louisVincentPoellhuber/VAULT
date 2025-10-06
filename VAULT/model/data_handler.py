@@ -200,7 +200,7 @@ class StreamingCorpus():
         self.ids = ids
 
     def __getitem__(self, page_id):
-        self.cursor.execute("SELECT id, title, text, url FROM articles WHERE id = ?", (int(page_id),))
+        self.cursor.execute("SELECT id, title, text, url FROM articles WHERE id = ?", (page_id,))
         row = self.cursor.fetchone()
 
         if row:
@@ -279,7 +279,7 @@ class VaultDataLoader(GenericDataLoader):
             "hotpotqa",
             "nq",
             "doris-mae",
-            "cord19", 
+            "trec-covid", 
             "wikipedia"
         ]
 

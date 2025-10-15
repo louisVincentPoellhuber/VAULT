@@ -110,7 +110,7 @@ def get_model(model_args, data_args):
 def get_dataloader(model, model_args, data_args, training_args):   
     # TODO: Remove Ablation Config
     if (not model_args.ablation_config.get("inter_block_encoder", True)) or (model_args.model_type=="bert")or (model_args.model_type=="dpr"):
-        corpus_chunk_size = 25000
+        corpus_chunk_size = 10000 # 25000
     else:
         corpus_chunk_size = 50000
 

@@ -2,8 +2,8 @@ from utils import *
 from wikipedia import *
 
 class HotPotQAProcessor(DatasetProcessor):
-    def __init__(self, datapath, overwrite):
-        super().__init__(datapath, "hotpotqa", overwrite)
+    def __init__(self, datapath, overwrite, suffix=""):
+        super().__init__(datapath, "hotpotqa"+suffix, overwrite)
         self.wikipedia_processor = WikipediaProcessor(datapath, overwrite)
         self.download_dir = self.wikipedia_processor.download_dir
         self.wikipedia_dir = self.wikipedia_processor.dataset_dir
@@ -14,9 +14,22 @@ class HotPotQAProcessor(DatasetProcessor):
 
     def process_corpus(self):
         if len(os.listdir(self.download_dir))>1:
-            self.wikipedia_processor.process_corpus(self.download_dir, self.wikipedia_dir, self.overwrite)
+            self.wikipedia_processor.process_corpus()
         else:
             raise Exception(f"No extracted Wikipedia folders found at {self.download_dir}. Please run 'process_wikipedia.sh' first.")
+
+        corpus_id_file = os.path.join(self.dataset_dir, "corpus_ids.csv")
+        if not os.path.exists(corpus_id_file) or self.overwrite:
+            dataset = ir_datasets.load("beir/hotpotqa")
+            hpqa_ids = set()
+            with open(corpus_id_file, "w") as ids_out:
+                for doc in tqdm(dataset.docs_iter()):
+                    hpqa_id = doc.doc_id
+                    if hpqa_id not in hpqa_ids:
+                        ids_out.write(str(hpqa_id)+"\n")
+                        hpqa_ids.add(hpqa_id)
+        else:
+            log_message(f"Corpus ID file already exists, skipping. ")
 
     def process_queries(self):
         dataset = ir_datasets.load(f"beir/hotpotqa")
@@ -56,43 +69,56 @@ class HotPotQAProcessor(DatasetProcessor):
 
         connection.close()
 
-    def process_short_dataset(self):
-        ids = self.wikipedia_processor._get_ids()
-        dataset = ir_datasets.load(f"beir/hotpotqa")
-        short_corpus_path = os.path.join(self.short_dataset_dir, "corpus.jsonl")
+class HotPotQAShortProcessor(HotPotQAProcessor):
+    def __init__(self, datapath, overwrite):
+        super().__init__(datapath, overwrite, "_short")
 
-        if self.overwrite or not os.path.exists(short_corpus_path):
-            with open(short_corpus_path, "w", encoding="utf-8") as f:
+    def process_corpus(self):
+        corpus_path = os.path.join(self.dataset_dir, "corpus.jsonl")
+
+        if self.overwrite or not os.path.exists(corpus_path):
+            with open(corpus_path, "w", encoding="utf-8") as f:
+                dataset = ir_datasets.load(f"beir/hotpotqa")
                 for doc in tqdm(dataset.docs_iter()):
                     docid = int(doc.doc_id)
-                    if docid in ids:
-                        doc_obj = {
-                            "_id": docid,
-                            "text": doc.text, 
-                            "title": doc.title
-                        }
-                        f.write(json.dumps(doc_obj) + "\n")
-            
-        short_queries_path = os.path.join(self.short_dataset_dir, "queries.jsonl")
-        queries_path = os.path.join(self.dataset_dir, "queries.jsonl")
-        if not os.path.exists(queries_path):
-            raise Exception(f"Queries file not found at {queries_path}. Please run 'process_queries()' first.")
-        shutil.copy(queries_path, short_queries_path)
+                    doc_obj = {
+                        "_id": docid,
+                        "text": doc.text, 
+                        "title": doc.title
+                    }
+                    f.write(json.dumps(doc_obj) + "\n")
+        else:
+            log_message(f"Dataset already processed. Skipping.")
+    
+    def process_qrels(self):
+        log_message(f"Processing qrels into {self.qrel_dir}.", print_message=True)
 
-        short_qrel_dir = os.path.join(self.short_dataset_dir, "qrels")
-        os.makedirs(short_qrel_dir, exist_ok=True)
-        for subset in self.subsets:           
-            short_qrel_path = os.path.join(short_qrel_dir, f"{subset}.tsv")
+        for subset in self.subsets:
+            dataset = ir_datasets.load(f"beir/hotpotqa/{subset}")
             qrel_path = os.path.join(self.qrel_dir, f"{subset}.tsv")
-            if not os.path.exists(qrel_path):
-                raise Exception(f"Qrels file for {subset} not found at {qrel_path}. Please run 'process_qrels()' first.")
-            shutil.copy(qrel_path, short_qrel_path)
+
+            if self.overwrite or not os.path.exists(qrel_path):
+                with open(qrel_path, "w", encoding="utf-8") as f:
+                    for qrel in dataset.qrels_iter():
+                        f.write(f"{qrel.query_id}\t{qrel.doc_id}\t{qrel.relevance}\n")
+            else:
+                log_message(f"Qrels for {subset} already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
+
+
 
 if __name__ == "__main__":
     args = parse_arguments()
     processor = HotPotQAProcessor(args.datapath, args.overwrite)
     
     processor.download()
+    processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
-    processor.process_short_dataset()
+
+    short_processor = HotPotQAShortProcessor(args.datapath, args.overwrite)
+    
+    
+    short_processor.download()
+    short_processor.process_corpus()
+    short_processor.process_queries()
+    short_processor.process_qrels()

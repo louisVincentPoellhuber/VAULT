@@ -1,7 +1,7 @@
 {
     "task": "trec-covid", 
     "exp_name": "hierarchical_test",
-    "output_dir": "/Tmp/lvpoellhuber/models/longtriever_og/trec-covid-hierarchical_test",
+    "output_dir": "/Tmp/lvpoellhuber/models/vault/trec-covid-hierarchical",
     "model_name_or_path": "/Tmp/lvpoellhuber/models/longtriever_og/pretrained/bert-base-uncased",
     "query_file": "/Tmp/lvpoellhuber/datasets/vault/trec-covid/queries.jsonl",
     "corpus_file": "/Tmp/lvpoellhuber/datasets/vault/trec-covid/corpus.jsonl",
@@ -19,7 +19,7 @@
     "per_device_eval_batch_size": 10, 
     "dataloader_drop_last": true,
     "do_train": true,
-    "overwrite_output_dir": true,
+    "overwrite_output_dir": false,
     "lr": 1e-4, 
     "report_to": "comet_ml",
     "logging_steps": 10,

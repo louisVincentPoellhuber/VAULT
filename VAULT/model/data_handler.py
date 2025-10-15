@@ -186,7 +186,7 @@ class LongtrieverCollator(DataCollatorForWholeWordMask):
 
 
 class StreamingCorpus():
-    def __init__(self, file_path):
+    def __init__(self, file_path, id_file=None):
         self.connection = sqlite3.connect(file_path)
         self.connection.execute("PRAGMA journal_mode=WAL;")         # better concurrency & fewer locks
         self.connection.execute("PRAGMA synchronous=NORMAL;")       # faster writes (safe enough)
@@ -196,7 +196,17 @@ class StreamingCorpus():
         self.cursor = self.connection.cursor()
 
         self.cursor.execute("SELECT id FROM articles")
-        ids = [row[0] for row in self.cursor.fetchall()]
+        if id_file != None:
+            id_filter = set()
+            with open(id_file, "r") as f:
+                for line in f.readlines():
+                    id = int(line.strip())
+                    id_filter.add(id)
+
+            ids = [row[0] for row in self.cursor.fetchall() if row[0] in id_filter]
+        else:
+            ids = [row[0] for row in self.cursor.fetchall()]
+
         self.ids = ids
 
     def __getitem__(self, page_id):
@@ -223,10 +233,24 @@ class StreamingCorpus():
             yield row["id"], {"title": row["title"], "text": row["text"]}
     
 class StreamedDataLoader(GenericDataLoader):
+    def __init__(
+            self, 
+            data_folder = None, 
+            prefix = None, 
+            corpus_file = "corpus.jsonl", 
+            id_file = None, 
+            query_file = "queries.jsonl", 
+            qrels_folder = "qrels", 
+            qrels_file = ""):
+        super().__init__(data_folder, prefix, corpus_file, query_file, qrels_folder, qrels_file)
+        self.id_file = id_file
+
     def load(self, split="test") -> tuple[dict[str, dict[str, str]], dict[str, str], dict[str, dict[str, int]]]:
         self.check(fIn=self.corpus_file, ext="db")
         self.check(fIn=self.query_file, ext="jsonl")
         self.check(fIn=self.qrels_file, ext="tsv")
+        if self.id_file != None:
+            self.check(fIn=self.id_file, ext="csv")
  
         if not len(self.corpus):
             logger.info("Loading Corpus...")
@@ -257,7 +281,7 @@ class StreamedDataLoader(GenericDataLoader):
     
 
     def _load_corpus(self):
-        self.corpus = StreamingCorpus(self.corpus_file)
+        self.corpus = StreamingCorpus(self.corpus_file, self.id_file)
 
 
 class VaultDataLoader(GenericDataLoader):
@@ -296,8 +320,10 @@ class VaultDataLoader(GenericDataLoader):
             # NQ and HotPotQA rely on a common Wikipedia corpus, instead of having separate corpuses. 
             if dataset_name=="nq" or dataset_name=="hotpotqa":
                 corpus_path = os.path.join(data_folder, "wikipedia")
+                self.id_file = os.path.join(dataset_path, "corpus_ids.csv")
             else:
                 corpus_path = dataset_path
+                self.id_file = None
 
             # Figure out if the corpus file's extension is JSON or DB
             for file in os.listdir(corpus_path):
@@ -324,7 +350,8 @@ class VaultDataLoader(GenericDataLoader):
             self.dataloader = StreamedDataLoader(
                 corpus_file=self.corpus_file, 
                 query_file=self.query_file, 
-                qrels_file=self.qrels_file
+                qrels_file=self.qrels_file, 
+                id_file=self.id_file
             )
             return self.dataloader.load(split)
         else:

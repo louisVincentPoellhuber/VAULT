@@ -1,8 +1,8 @@
 from utils import *
 
 class TrecCovidProcessor(DatasetProcessor):
-    def __init__(self, datapath, overwrite):
-        super().__init__(datapath, "trec-covid",  overwrite)
+    def __init__(self, datapath, overwrite, suffix=""):
+        super().__init__(datapath, "trec-covid"+suffix,  overwrite)
         self.id_dict = {}
         self.download_batch_size = 2500
         self.subsets = ["train", "test"]
@@ -145,37 +145,55 @@ class TrecCovidProcessor(DatasetProcessor):
         else:
             log_message(f"Qrels for test already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
 
-    def process_short_dataset(self):
+
+class TrecCovidShortProcessor(TrecCovidProcessor):
+    def __init__(self, datapath, overwrite):
+        super().__init__(datapath, overwrite, "_short")
+
+    def process_corpus(self):
         dataset = ir_datasets.load("cord19/trec-covid")
-        corpus_ids = self._get_cord_ids()
 
-        short_corpus_path = os.path.join(self.short_dataset_dir, "corpus.jsonl")
+        corpus_path = os.path.join(self.dataset_dir, "corpus.jsonl")
 
-        with open(short_corpus_path, "w", encoding="utf-8") as f:
+        with open(corpus_path, "w", encoding="utf-8") as f:
             for doc in tqdm(dataset.docs_iter()):
                 docid = doc.doc_id
-                if docid in corpus_ids:
-                    doc_obj = {
-                        "_id": docid,
-                        "text": doc.abstract, 
-                        "title": doc.title
-                    }
-                    f.write(json.dumps(doc_obj) + "\n")
+                doc_obj = {
+                    "_id": docid,
+                    "text": doc.abstract, 
+                    "title": doc.title
+                }
+                f.write(json.dumps(doc_obj) + "\n")
 
-        short_queries_path = os.path.join(self.short_dataset_dir, "queries.jsonl")
-        queries_path = os.path.join(self.dataset_dir, "queries.jsonl")
-        if not os.path.exists(queries_path):
-            raise Exception(f"Queries not found at {queries_path}. Please run full dataset processing first.")
-        shutil.copy(queries_path, short_queries_path)
+    def process_qrels(self):
+        dataset = ir_datasets.load("cord19/trec-covid")
+        log_message(f"Processing qrels into {self.qrel_dir}.", print_message=True)
 
-        short_qrel_dir = os.path.join(self.short_dataset_dir, "qrels")
-        os.makedirs(short_qrel_dir, exist_ok=True)
-        for subset in self.subsets:
-            short_qrel_path = os.path.join(short_qrel_dir, subset+".tsv")
-            qrel_path = os.path.join(self.qrel_dir, subset+".tsv")
-            if not os.path.exists(qrel_path):
-                raise Exception(f"Qrels not found at {qrel_path}. Please run full dataset processing first.")
-        shutil.copy(qrel_path, short_qrel_path)
+        
+        all_qrels = []
+        for qrel in dataset.qrels_iter():
+
+            if qrel.relevance>0:
+                all_qrels.append((qrel.query_id, qrel.doc_id, qrel.relevance))
+
+        ratio = 0.75
+        nb_train = round(ratio * len(all_qrels))
+        train_qrels = random.sample(all_qrels, k=nb_train)
+        test_qrels = list(set(all_qrels).symmetric_difference(set(train_qrels)))
+
+        qrels = [train_qrels, test_qrels]
+
+        for i, subset_qrels in enumerate(qrels):
+            subset = self.subsets[i]
+            qrel_path = os.path.join(self.qrel_dir, f"{subset}.tsv")
+
+            if self.overwrite or not os.path.exists(qrel_path):
+                with open(qrel_path, "w", encoding="utf-8") as f:
+                    for qrel in subset_qrels:
+                        f.write(f"{qrel[0]}\t{qrel[1]}\t{qrel[2]}\n")
+            else:
+                log_message(f"Qrels for {subset} already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
+
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -185,4 +203,11 @@ if __name__ == "__main__":
     processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
-    processor.process_short_dataset()
+
+
+    short_processor = TrecCovidShortProcessor(args.datapath, args.overwrite)
+    
+    short_processor.download()
+    short_processor.process_corpus()
+    short_processor.process_queries()
+    short_processor.process_qrels()

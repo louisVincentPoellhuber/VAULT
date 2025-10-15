@@ -132,39 +132,6 @@ class WikipediaProcessor(DatasetProcessor):
                     for line in dataset_in:
                         wiki_out.write(line)
 
-    def process_short_dataset(self):
-        datasets = ["hotpotqa", "nq"]
-
-        wikipedia_corpus_path = os.path.join(self.short_dataset_dir, "corpus.jsonl")
-        wikipedia_queries_path = os.path.join(self.short_dataset_dir, "queries.jsonl")
-        wikipedia_qrels_dir = os.path.join(self.short_dataset_dir, "qrels")
-        os.makedirs(wikipedia_qrels_dir, exist_ok=True)
-
-        for dataset in datasets:
-            dataset_dir = os.path.join(self.datapath, dataset+"_short")
-            corpus_path = os.path.join(dataset_dir, "corpus.jsonl")
-            queries_path = os.path.join(dataset_dir, "queries.jsonl")
-            qrel_dir = os.path.join(dataset_dir, "qrels")
-
-            if (not os.path.exists(corpus_path)) or (not os.path.exists(queries_path)) or (not os.path.exists(qrel_dir)):
-                raise Exception(f"Short dataset not found. Please process {dataset} first by running {dataset}.py.")
-            
-            with open(corpus_path, "r") as corpus_in, open(queries_path, "r") as queries_in, \
-                open(wikipedia_corpus_path, "a") as corpus_out, open(wikipedia_queries_path, "a") as queries_out:
-                    for line in corpus_in:
-                        corpus_out.write(line)
-                    for line in queries_in:
-                        queries_out.write(line)
-
-            for subset in os.listdir(qrel_dir):
-                subset_path = os.path.join(qrel_dir, subset)
-                subset_name = self.norm_subset_name[subset.split(".")[0]]
-                wikipedia_qrels_subset = os.path.join(wikipedia_qrels_dir, subset_name+".tsv")
-
-                with open(subset_path, "r") as dataset_in, open(wikipedia_qrels_subset, "a") as wiki_out:
-                    for line in dataset_in:
-                        wiki_out.write(line)
-
 if __name__ == "__main__":
     args = parse_arguments()
     processor = WikipediaProcessor(args.datapath, args.overwrite)
@@ -172,4 +139,3 @@ if __name__ == "__main__":
     processor.process_corpus()
     processor.process_queries()
     processor.process_qrels()
-    processor.process_short_dataset()

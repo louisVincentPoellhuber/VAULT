@@ -1,14 +1,17 @@
 pip install -r requirements.txt
-
 export VAULT_DIR=/Tmp/lvpoellhuber/datasets/vault
 
-# bash scripts/process_all.sh
 
-bash scripts/vault.sh
+bash scripts/process_all.sh
 
-# bash scripts/bert.sh
+bash scripts/hierarchical.sh
 
-# bash scripts/dpr.sh
+bash scripts/bert.sh
+
+bash scripts/dpr.sh
+
+bash scripts/longtriever.sh
+
 
 # TODO: Remove and uncomment from process_all.sh
 echo "Processing Doris-MAE." 

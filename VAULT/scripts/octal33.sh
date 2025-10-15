@@ -76,3 +76,6 @@ python evaluate.py \
         --run_name $exp_name\
         --logging_steps 100 \
         --ablation_config '{"inter_block_encoder":true, "doc_token":false, "segments": true, "start_separator": false, "text_separator": true, "end_separator": false, "cls_position": "first"}'
+
+
+python preprocessing/msmarco.py

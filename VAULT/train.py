@@ -7,7 +7,7 @@ import json
 dotenv.load_dotenv()
 import warnings
 
-from model.data_handler import DatasetForFineTuning,DatasetForFineTuningNegatives,DataCollatorForFineTuningLongtriever,DataCollatorForFineTuningHierarchicalLongtriever,DatasetForPretraining,LongtrieverCollator,DataCollatorForFineTuningBert
+from model.data_handler import DatasetForFineTuning,DataCollatorForFineTuningLongtriever,DataCollatorForFineTuningHierarchicalLongtriever,DatasetForPretraining,LongtrieverCollator,DataCollatorForFineTuningBert
 from model.modeling_longtriever import Longtriever, LongtrieverForPretraining
 from model.modeling_hierarchical import HierarchicalLongtriever
 from model.modeling_retriever import LongtrieverRetriever, BertRetriever
@@ -35,25 +35,24 @@ def get_model(model_args, data_args):
     log_message("Loading model.")
     if model_args.model_type=="longtriever":
         encoder = Longtriever.from_pretrained(
-                model_args.model_name_or_path, 
-                ablation_config=model_args.ablation_config, 
+                model_args.model_name_or_path,
                 doc_token_init=model_args.doc_token_init
             )
         model = LongtrieverRetriever(
-                model=encoder, 
+                model=encoder,
                 normalize=data_args.normalize,
                 loss_function=data_args.loss_function
-            ) 
+            )
     elif model_args.model_type=="hierarchical":
         encoder = HierarchicalLongtriever.from_pretrained(
-                model_args.model_name_or_path, 
-                ablation_config=model_args.ablation_config, 
-                doc_token_init=model_args.doc_token_init, 
-                output_attentions=model_args.output_attentions, 
+                model_args.model_name_or_path,
+                segments=model_args.segments,
+                doc_token_init=model_args.doc_token_init,
+                output_attentions=model_args.output_attentions,
                 pooling_strategy=model_args.pooling_strategy
             )
         model = LongtrieverRetriever(
-                model=encoder, 
+                model=encoder,
                 normalize=data_args.normalize,
                 loss_function=data_args.loss_function
             )     
@@ -73,13 +72,8 @@ def get_dataset(model_args, data_args, training_args):
     if "pretrain" in model_args.model_type: # Pretrained dataset if we're pretraining
         dataset = DatasetForPretraining(data_args)
     else:
-        if data_args.negatives: # Negative dataset if wer're fine-tuning with negatives
-            assert training_args.per_device_train_batch_size % 2 == 0, "Batch size must be even when using negatives."
-            training_args.per_device_train_batch_size = training_args.per_device_train_batch_size // 2
-            dataset = DatasetForFineTuningNegatives(data_args)
-        else: # Normal dataset for fine-tuning otherwise
-            dataset = DatasetForFineTuning(data_args)
-            log_message(f"Streaming data: {dataset.streaming}", print_message=True)
+        dataset = DatasetForFineTuning(data_args)
+        log_message(f"Streaming data: {dataset.streaming}", print_message=True)
 
     return dataset
 
@@ -95,8 +89,7 @@ def get_data_collator(model_args, data_args):
                 tokenizer=tokenizer,
                 max_query_length=data_args.max_query_length,
                 max_corpus_length=data_args.max_corpus_length,
-                max_corpus_sent_num=data_args.max_corpus_sent_num, 
-                negatives=data_args.negatives
+                max_corpus_sent_num=data_args.max_corpus_sent_num
             )
     elif model_args.model_type=="hierarchical":
         log_message("Loading dataset for fine-tuning")
@@ -104,11 +97,7 @@ def get_data_collator(model_args, data_args):
                 tokenizer=tokenizer,
                 max_query_length=data_args.max_query_length,
                 max_corpus_length=data_args.max_corpus_length,
-                max_corpus_sent_num=data_args.max_corpus_sent_num, 
-                negatives=data_args.negatives, 
-                start_separator = model_args.ablation_config.get("start_separator", False), 
-                text_separator = model_args.ablation_config.get("text_separator", True), 
-                end_separator = model_args.ablation_config.get("end_separator", False)
+                max_corpus_sent_num=data_args.max_corpus_sent_num
             )
     elif model_args.model_type=="bert":
         log_message("Loading dataset for fine-tuning")
@@ -127,7 +116,7 @@ def get_data_collator(model_args, data_args):
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "bert_short.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "longtriever_test.json"))
         # config_path = "/u/poellhul/Documents/Masters/VAULT/configs/pubmedbert_test.json"
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
@@ -168,12 +157,6 @@ def main():
         transformers.utils.logging.enable_default_handler()
         transformers.utils.logging.enable_explicit_format()
     log_message(f"Training parameters {training_args}")
-
-    if (model_args.model_type == "bert") & (data_args.negatives):
-        raise ValueError("BERT model does not yet support negatives. Please set `negatives` to False.")
-    
-    if (not model_args.ablation_config["text_separator"]) & (not model_args.ablation_config["end_separator"]):
-        warnings.warn("No separators are set in the ablation config. This could lead to training issues. Please set at least one separator to True.")
 
     model = get_model(model_args, data_args)
     dataset = get_dataset(model_args, data_args, training_args)

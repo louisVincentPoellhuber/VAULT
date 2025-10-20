@@ -21,7 +21,7 @@
     "lr": 1e-4, 
     "report_to": "comet_ml",
     "logging_steps": 10,
-    "ablation_config": {"inter_block_encoder":true, "doc_token":true, "start_separator": false, "text_separator": true, "end_separator": false, "segments": true, "cls_position": "first"}, 
+    "segments": false,
     "loss_function": "contrastive", 
     "min_corpus_len": 0
 }

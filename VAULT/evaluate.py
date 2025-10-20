@@ -38,10 +38,7 @@ def get_data_collator(model_args, data_args):
                 tokenizer,
                 data_args.max_query_length,
                 data_args.max_corpus_length,
-                data_args.max_corpus_sent_num, 
-                start_separator = model_args.ablation_config.get("start_separator", False), 
-                text_separator = model_args.ablation_config.get("text_separator", True), 
-                end_separator = model_args.ablation_config.get("end_separator", False)
+                data_args.max_corpus_sent_num
             )
     elif (model_args.model_type=="bert") or (model_args.model_type=="dpr"):
         data_collator=DataCollatorForEvaluatingBert( 
@@ -62,25 +59,24 @@ def get_model(model_args, data_args):
     log_message("Loading model.")
     if model_args.model_type=="longtriever":
         encoder = Longtriever.from_pretrained(
-                model_args.model_name_or_path, 
-                ablation_config=model_args.ablation_config
+                model_args.model_name_or_path
             )
         model = LongtrieverRetriever(
-                model=encoder, 
+                model=encoder,
                 normalize=data_args.normalize,
-                loss_function=data_args.loss_function, 
+                loss_function=data_args.loss_function,
                 data_collator=data_collator
-            ) 
+            )
     elif model_args.model_type=="hierarchical":
         encoder = HierarchicalLongtriever.from_pretrained(
-                model_args.model_name_or_path, 
-                ablation_config=model_args.ablation_config, 
+                model_args.model_name_or_path,
+                segments=model_args.segments,
                 pooling_strategy=model_args.pooling_strategy
             )
         model = LongtrieverRetriever(
-                model=encoder, 
+                model=encoder,
                 normalize=data_args.normalize,
-                loss_function=data_args.loss_function, 
+                loss_function=data_args.loss_function,
                 data_collator=data_collator
             )     
     elif model_args.model_type=="bert":
@@ -107,9 +103,9 @@ def get_model(model_args, data_args):
     return model
 
 
-def get_dataloader(model, model_args, data_args, training_args):   
-    # TODO: Remove Ablation Config
-    if (not model_args.ablation_config.get("inter_block_encoder", True)) or (model_args.model_type=="bert")or (model_args.model_type=="dpr"):
+def get_dataloader(model, model_args, data_args, training_args):
+    # inter_block_encoder is always True for hierarchical and longtriever models
+    if (model_args.model_type=="bert") or (model_args.model_type=="dpr"):
         corpus_chunk_size = 10000 # 25000
     else:
         corpus_chunk_size = 50000

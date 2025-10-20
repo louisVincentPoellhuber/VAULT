@@ -99,9 +99,6 @@ if __name__ == "__main__":
     model_args: ModelArguments
     data_args: DataTrainingArguments
     training_args: TrainingArguments
-
-    # Main arguments
-    model_path = training_args.output_dir
     
     # Parameters
     model_path = data_args.base_model
@@ -126,20 +123,21 @@ if __name__ == "__main__":
     else:
         # Load tokenizer, there should be no issues here
         tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
-
-        if model_args.model_type=="longtriever":
-            model_type = Longtriever
-        elif model_args.model_type=="hierarchical":
-            model_type = HierarchicalLongtriever
-
+        
         # Load the base model
         base_model = AutoModel.from_pretrained(model_path)
         # Stick the parameters that match the Longtriever model
-        longtriever = model_type.from_pretrained(
-                data_args.base_model, 
-                ablation_config=model_args.ablation_config, 
-                doc_token_init=model_args.doc_token_init
-            )
+        if model_args.model_type == "hierarchical":
+            longtriever = Longtriever.from_pretrained(
+                    data_args.base_model,
+                    segments=model_args.segments,
+                    doc_token_init=model_args.doc_token_init
+                )
+        else:
+            longtriever = HierarchicalLongtriever.from_pretrained(
+                    data_args.base_model,
+                    doc_token_init=model_args.doc_token_init
+                )
 
         # Initialize both Longtriever encoders with the base model's encoder
         init_longtriever_params(base_model, longtriever)

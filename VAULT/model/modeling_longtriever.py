@@ -21,7 +21,7 @@ class BlockLevelContextawareEncoder(nn.Module):
         self.config = config
         self.text_encoding_layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
         self.information_exchanging_layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
-        self.ablation_config = kwargs.get("ablation_config", {"inter_block_encoder": True, "doc_token": True})
+        # Defaults: inter_block_encoder=True, doc_token=True
 
     def forward(
         self,
@@ -34,7 +34,8 @@ class BlockLevelContextawareEncoder(nn.Module):
         B, _, _, N_ = node_mask.shape
         N=N_-1
         for i, layer_module in enumerate(self.text_encoding_layer):
-            if (i>0) or (not self.ablation_config["inter_block_encoder"]):
+            # inter_block_encoder = True, so first layer has special attention mask
+            if i > 0:
                 layer_outputs = layer_module(hidden_states, attention_mask, output_attentions=self.config.output_attentions)
             else:
                 temp_attention_mask = attention_mask.clone()
@@ -44,15 +45,15 @@ class BlockLevelContextawareEncoder(nn.Module):
 
             hidden_states = layer_outputs[0]
 
-            if self.ablation_config["inter_block_encoder"]:
-                hidden_states = hidden_states.view(B, N, L_, D)
-                cls_hidden_states = hidden_states[:, :, 1, :].clone()
+            # inter_block_encoder = True
+            hidden_states = hidden_states.view(B, N, L_, D)
+            cls_hidden_states = hidden_states[:, :, 1, :].clone()
 
-                reduce_cls_hidden_states=torch.cat([reduce_hidden_states,cls_hidden_states],dim=1) #[B,N+1,D]
-                station_hidden_states = self.information_exchanging_layer[i](reduce_cls_hidden_states, node_mask, output_attentions=self.config.output_attentions)[0]
-                reduce_hidden_states = station_hidden_states[:,:1,:]
-                hidden_states[:, :, 0, :] = station_hidden_states[:,1:,:]
-                hidden_states = hidden_states.view(B * N, L_, D)
+            reduce_cls_hidden_states=torch.cat([reduce_hidden_states,cls_hidden_states],dim=1) #[B,N+1,D]
+            station_hidden_states = self.information_exchanging_layer[i](reduce_cls_hidden_states, node_mask, output_attentions=self.config.output_attentions)[0]
+            reduce_hidden_states = station_hidden_states[:,:1,:]
+            hidden_states[:, :, 0, :] = station_hidden_states[:,1:,:]
+            hidden_states = hidden_states.view(B * N, L_, D)
 
         return (reduce_hidden_states, hidden_states, )
 
@@ -60,10 +61,9 @@ class Longtriever(BertModel):
     def __init__(self, config, **kwargs):
         super().__init__(config, add_pooling_layer=False)
         self.config = config
-        self.ablation_config = kwargs.get("ablation_config", {"inter_block_encoder": True, "doc_token": True})
         self.embeddings = BertEmbeddings(config)
         self.encoder = BlockLevelContextawareEncoder(config, **kwargs)
-        
+
         self.doc_token_init = kwargs.get("doc_token_init", "default")
         if self.doc_token_init == "cls":
             self.doc_embeddings = None
@@ -77,9 +77,8 @@ class Longtriever(BertModel):
         # Initialize weights and apply final processing
         self.post_init()
 
-    def get_extended_attention_mask(self, attention_mask: Tensor) -> Tensor:
-        #station_mask==0? for attention_mask==0
-        if self.ablation_config["doc_token"]:
+    def get_extended_attention_mask(self, attention_mask: Tensor, doc_token=True) -> Tensor:
+        if doc_token:
             station_mask = torch.ones((attention_mask.shape[0],1),dtype=attention_mask.dtype,device=attention_mask.device) # [B*N,1]
             attention_mask = torch.cat([station_mask,attention_mask],dim=1) # [B*N,1+L]
         extended_attention_mask = attention_mask[:, None, None, :]
@@ -109,32 +108,20 @@ class Longtriever(BertModel):
         extended_sentence_mask = (1.0 - sentence_mask[:, None, None, :]) * -10000.0
 
         embedding_output = self.embeddings(input_ids=input_ids)
-        
-        if self.ablation_config["doc_token"]:
-            station_placeholder = torch.zeros((embedding_output.shape[0], 1, embedding_output.shape[-1]),dtype=embedding_output.dtype,device=embedding_output.device)
-            embedding_output = torch.cat([station_placeholder, embedding_output], dim=1)  # [B*N,1+L,D]
-            
-            encoder_outputs = self.encoder(
-                embedding_output,
-                attention_mask=extended_attention_mask,
-                reduce_hidden_states=self.doc_embeddings,
-                node_mask=extended_sentence_mask,
-            )
-        else:            
-            encoder_outputs = self.encoder(
-                embedding_output,
-                attention_mask=extended_attention_mask,
-                reduce_hidden_states=self.doc_embeddings,
-                node_mask=extended_sentence_mask,
-            )
 
-        # Pooling depending on context
-        if self.ablation_config["inter_block_encoder"]:
-            text_vec = encoder_outputs[0].squeeze(1)
-        elif not self.ablation_config["inter_block_encoder"] and self.ablation_config["doc_token"]:
-            text_vec = encoder_outputs[1][:,1,:] 
-        elif not self.ablation_config["inter_block_encoder"] and not self.ablation_config["doc_token"]:
-            text_vec = encoder_outputs[1][:,0,:] 
+        # doc_token = True for Longtriever
+        station_placeholder = torch.zeros((embedding_output.shape[0], 1, embedding_output.shape[-1]),dtype=embedding_output.dtype,device=embedding_output.device)
+        embedding_output = torch.cat([station_placeholder, embedding_output], dim=1)  # [B*N,1+L,D]
+
+        encoder_outputs = self.encoder(
+            embedding_output,
+            attention_mask=extended_attention_mask,
+            reduce_hidden_states=self.doc_embeddings,
+            node_mask=extended_sentence_mask,
+        )
+
+        # inter_block_encoder = True
+        text_vec = encoder_outputs[0].squeeze(1)
 
         if not return_last_hiddens:
             return text_vec

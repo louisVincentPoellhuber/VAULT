@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Optional
 import os
-import json
 
 @dataclass
 class DataTrainingArguments:
@@ -11,7 +10,6 @@ class DataTrainingArguments:
     query_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/queries.jsonl")
     corpus_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/corpus.jsonl")
     qrels_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/qrels/train.tsv")
-    nqrels_file: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/datasets/msmarco-doc/nqrels/train.tsv")
     max_query_length: Optional[int] = field(default=512)
     max_corpus_length: Optional[int] = field(default=512)
     max_corpus_sent_num: Optional[int] = field(default=8)
@@ -22,7 +20,6 @@ class DataTrainingArguments:
     min_corpus_len: Optional[int] = field(default=0)
     base_model: Optional[str] = field(default="bert-base-uncased")
     base_model_postfix: Optional[str] = field(default="true")
-    negatives: Optional[bool] = field(default=False)
     streaming: Optional[bool] = field(default=False)
 
 @dataclass
@@ -31,14 +28,7 @@ class ModelArguments:
     model_name_or_path: Optional[str] = field(default=f"{os.getenv("STORAGE_DIR")}/models/longtriever/pretrained/bert-base-uncased")
     ctx_model_name_or_path: Optional[str] = field(default=None)
     q_model_name_or_path: Optional[str] = field(default=None)
-    ablation_config: Optional[str]  = field(default_factory=lambda:'{"inter_block_encoder":true, "doc_token":true, "start_separator": false, "text_separator": true, "end_separator": false, "segments": false, "cls_position": "first"}')
+    segments: Optional[bool] = field(default=False)
     doc_token_init: Optional[str] = field(default="default") # default, zero, cls
     output_attentions: Optional[bool] = field(default=False)
     pooling_strategy: Optional[str] = field(default="mean")
-    
-    def __post_init__(self):
-        if isinstance(self.ablation_config, str):
-            try:
-                self.ablation_config = json.loads(self.ablation_config)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON for ablation_config: {self.ablation_config}") from e

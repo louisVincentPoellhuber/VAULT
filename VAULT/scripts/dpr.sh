@@ -280,7 +280,7 @@ python evaluate.py \
         --report_to comet_ml \
         --run_name $exp_name\
         --logging_steps 100 \
-        --ablation_config '{"inter_block_encoder":true, "doc_token":false, "segments": true, "start_separator": false, "text_separator": true, "end_separator": false, "cls_position": "first"}'
+        --segments true \
 
 
 
@@ -330,7 +330,7 @@ python evaluate.py \
 #         --report_to comet_ml \
 #         --run_name $exp_name\
 #         --logging_steps 100 \
-#         --ablation_config '{"inter_block_encoder":true, "doc_token":false, "segments": true, "start_separator": false, "text_separator": true, "end_separator": false, "cls_position": "first"}'
+#         --segments true \
 
 
 # task="nq_short"
@@ -373,7 +373,7 @@ python evaluate.py \
 #         --report_to comet_ml \
 #         --run_name $exp_name\
 #         --logging_steps 100 \
-#         --ablation_config '{"inter_block_encoder":true, "doc_token":false, "segments": true, "start_separator": false, "text_separator": true, "end_separator": false, "cls_position": "first"}'
+#         --segments true \
 
 
 # task="trec-covid_short"
@@ -415,5 +415,5 @@ python evaluate.py \
 #         --report_to comet_ml \
 #         --run_name $exp_name\
 #         --logging_steps 100 \
-#         --ablation_config '{"inter_block_encoder":true, "doc_token":false, "segments": true, "start_separator": false, "text_separator": true, "end_separator": false, "cls_position": "first"}'
+#         --segments true \
 

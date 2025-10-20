@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
         # model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
-        model_args, data_args, training_args = parser.parse_json_file(json_file="/u/poellhul/Documents/Masters/benchmarkIR-slurm/src/longtriever/configs/longtriever_test.json", allow_extra_keys=True)
+        model_args, data_args, training_args = parser.parse_json_file(json_file="/u/poellhul/Documents/Masters/VAULT/configs/pubmedbert_test.json", allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     
@@ -106,10 +106,10 @@ if __name__ == "__main__":
     # Parameters
     model_path = data_args.base_model
     
-    longtriever_dir = os.path.join(STORAGE_DIR, "models", "longtriever_og")
-    os.makedirs(longtriever_dir, exist_ok=True)
+    vault_dir = os.path.join(STORAGE_DIR, "models", "vault")
+    os.makedirs(vault_dir, exist_ok=True)
 
-    pretrained_dir = os.path.join(longtriever_dir, "pretrained")
+    pretrained_dir = os.path.join(vault_dir, "pretrained")
     os.makedirs(pretrained_dir, exist_ok=True)
 
     save_path = os.path.join(pretrained_dir, model_path.split("/")[-1])

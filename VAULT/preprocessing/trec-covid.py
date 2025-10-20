@@ -70,9 +70,10 @@ class TrecCovidProcessor(DatasetProcessor):
                                                     cord_id = self.id_dict.get(article["paper_id"], None)
                                                     if cord_id is not None:
                                                         title = article["metadata"]["title"]
-                                                        abstract = " ".join([text["text"] for text in article["abstract"]])
+                                                        # abstract = " ".join([text["text"] for text in article["abstract"]])
                                                         body_text = " ".join([text["text"] for text in article["body_text"]])
-                                                        full_text = abstract+" "+body_text
+                                                        # full_text = abstract+" "+body_text
+                                                        full_text = body_text
 
                                                         obj = {
                                                             "_id": cord_id,
@@ -101,49 +102,58 @@ class TrecCovidProcessor(DatasetProcessor):
             with open(queries_path, "a", encoding="utf-8") as f:
                 tree = ET.parse(queries_in_file)
                 root = tree.getroot()
-                
+ 
+                all_queries = []
                 for topic in root.findall("topic"):
                     id = topic.get("number")
                     query = topic.find("question").text.strip()
-                    obj = {
-                        "_id": id,
-                        "text": query
-                    }
-                    f.write(json.dumps(obj) + "\n")
+  
+                    all_queries.append((id, query))
+
+                ratio = 0.75
+                nb_train = round(ratio * len(all_queries))
+                train_queries = random.sample(all_queries, k=nb_train)
+                test_queries = list(set(all_queries).symmetric_difference(set(train_queries)))
+
+                subsets = [train_queries, test_queries]
+                for i, subset in enumerate(subsets):
+                    subset_name = self.subsets[i]
+                    for q in subset:
+                        obj = {
+                            "_id": q[0],
+                            "text": q[1],
+                            "subset": subset_name
+                        }
+                        f.write(json.dumps(obj) + "\n")
         else:
             log_message(f"Queries already exist at {queries_path}. Skipping query processing.", print_message=True)
 
     def process_qrels(self):
         log_message(f"Processing qrels into {self.qrel_dir}.", print_message=True)
         qrel_in_file = os.path.join(self.download_dir, "qrels-covid_d5_j0.5-5.txt")
-        qrel_path = os.path.join(self.qrel_dir, "test.tsv")
+        qrel_train_path = os.path.join(self.qrel_dir, "train.tsv")
+        qrel_test_path = os.path.join(self.qrel_dir, "test.tsv")
         cord_ids = self._get_cord_ids()
+        queries = load_jsonl(os.path.join(self.dataset_dir, "queries.jsonl"))
 
-        all_qrels = []
-        if self.overwrite or not os.path.exists(qrel_path): 
-            with open(qrel_in_file, "r") as qrel_in:
+        if self.overwrite or not os.path.exists(qrel_train_path) or not os.path.exists(qrel_test_path): 
+            with open(qrel_in_file, "r") as qrel_in, \
+                open(qrel_train_path, "w", encoding="utf-8") as train_qrel_file, \
+                open(qrel_test_path, "w", encoding="utf-8") as test_qrel_file:
                 for line in qrel_in.readlines():
                     qid, _, cord_id, score = line.strip().split(" ")
 
                     if (cord_id in cord_ids) and (int(score)>0):
-                        all_qrels.append((qid, cord_id, score))
+                        subset = queries[qid]["subset"]
+                        
+                        if subset=="train":
+                            qrel_file = train_qrel_file
+                        else:
+                            qrel_file = test_qrel_file
 
-            ratio = 0.75
-            nb_train = round(ratio * len(all_qrels))
-            train_qrels = random.sample(all_qrels, k=nb_train)
-            test_qrels = list(set(all_qrels).symmetric_difference(set(train_qrels)))
-
-            qrels = [train_qrels, test_qrels]
-
-            for i, subset_qrel in enumerate(qrels):
-                subset = self.subsets[i]
-                qrel_path = os.path.join(self.qrel_dir, subset+".tsv")
-
-                with open(qrel_path, "w", encoding="utf-8") as qrel_file:
-                    for qrel in subset_qrel:
-                        qrel_file.write(f"{qrel[0]}\t{qrel[1]}\t{qrel[2]}\n")
+                        qrel_file.write(f"{qid}\t{cord_id}\t{score}\n")
         else:
-            log_message(f"Qrels for test already exist at {qrel_path}. Skipping qrel processing.", print_message=True)
+            log_message(f"Qrels already exist at {self.qrel_dir}. Skipping qrel processing.", print_message=True)
 
 
 class TrecCovidShortProcessor(TrecCovidProcessor):

@@ -127,7 +127,8 @@ def get_data_collator(model_args, data_args):
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "hierarchical_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "bert_short.json"))
+        # config_path = "/u/poellhul/Documents/Masters/VAULT/configs/pubmedbert_test.json"
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()

@@ -93,7 +93,8 @@ def run_baseline(datasets, baseline, baseline_dir, batch_size=100000):
 
 if __name__ == "__main__":
     # Example datasets
-    datasets = ["hotpotqa", "nq", "wikir", "cord19", "doris-mae"] 
+    datasets = ["wikipedia", "trec-covid"] 
+    # datasets = ["hotpotqa", "nq", "wikir", "trec-covid", "doris-mae", "wikipedia"] 
 
     vault_dir = os.getenv("VAULT_DIR")
     if vault_dir == None: # TODO: Remove

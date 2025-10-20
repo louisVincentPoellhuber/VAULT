@@ -198,7 +198,7 @@ class NQShortProcessor(NQProcessor):
 
         for subset in self.subsets:
             dataset = ir_datasets.load(f"natural-questions/{subset}")
-            qrel_path = os.path.join(self.qrel_dir, f"{subset}.tsv")
+            qrel_path = os.path.join(self.qrel_dir, f"{self.norm_subset_name[subset]}.tsv")
 
             if self.overwrite or not os.path.exists(qrel_path):
                 with open(qrel_path, "w", encoding="utf-8") as f:

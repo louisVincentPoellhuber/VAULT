@@ -1,0 +1,175 @@
+Retriever evaluation for k in: [1, 3, 5, 10, 100, 1000]
+NDCG: {'NDCG@1': 0.35576, 'NDCG@3': 0.29791, 'NDCG@5': 0.32221, 'NDCG@10': 0.34752, 'NDCG@100': 0.39499, 'NDCG@1000': 0.42053}
+Recall: {'Recall@1': 0.18153, 'Recall@3': 0.2903, 'Recall@5': 0.33874, 'Recall@10': 0.40278, 'Recall@100': 0.59364, 'Recall@1000': 0.7653}
+Precision: {'P@1': 0.35576, 'P@3': 0.18997, 'P@5': 0.13301, 'P@10': 0.07906, 'P@100': 0.01163, 'P@1000': 0.0015}
+MAP: {'MAP@1': 0.18153, 'MAP@3': 0.24465, 'MAP@5': 0.26041, 'MAP@10': 0.27267, 'MAP@100': 0.28356, 'MAP@1000': 0.28467}
+MRR: {'MRR': 0.44714}
+Query : Who plays the guitar, Denis Bélanger or Max Carl?
+Rank 1: 43211716 [Chris Fronzak] - American musician (born 1989)
+Christopher Joseph Fronzak (born November 20, 1989), also known as Fronz or Fronzilla, is an American musician who is best known as the lead vocalist and founding member of the metalcore/rap metal band Attila. Aside from his work in Attila, he is also the manager of record label Stay Sick Recordings and clothing line Stay Sick Threads.
+Career.
+Attila.
+Fronzak met Sean Heenan, Sam Halcomb, Matt Booth and Kris Wilson all in high school during his freshman year in Carrollton, Georgia, and formed his first band Attila, named in reference to Attila the Hun, which he came across in a book. Since 2007 with Fallacy, the band released seven records with two different record labels, Artery Recordings and SharpTone Records, before they decided to record as an unsigned band. As an independent band, they released their album, Villain, in 2019.
+Bone Crew.
+Fronzak started a new side project named Bone Crew. He officially announced the project in July 2018. They released a self-titled album, which was released August 3, 2018, through Stay Sick Recordings. On April 27, 2019, Bone Crew performed live for the first time ever at So What Music Festival in Dallas.
+Solo.
+In 2011, Fronzak was featured in the From the Embrace song "La Flama Blanca", which appeared on the band's "The Grind" EP. In 2012, Fronzak was featured in the In Dying Arms song "Bathed in Salt", which appeared on the band's album "Boundaries", released in September 2012. He also featured in the song "Love, Sex, Riot" from Issues' debut EP "Black Diamonds", which was released on November 13. Fronzak was also featured in the We Are the Blog! song "Shwash" in their EP "Decadence". Fronzak featured in "Mimic" from Upon a Burning Body's 2012 album, "Red. White. Green." He also featured in My City, My Secret's song "The Forefront" from their debut EP "Dream Being". In 2013, Fronz was featured in Sleeping with Sirens song "The Best There Ever Was" off their third album, "Feel". In 2017, he was featured in the Eskimo Callboy song "The Scene" off their album "The Scene".
+On December 11, 2013, it was announced that Fronzak would be heading into the studio in the following month to begin recording a hip-hop album. On April 1, 2014, he released his first song, entitled "Turn It Up", under the stage name Fronzilla as part of his hip-hop side project. Another single, "They Still Talk", was released in March 2015, along with the announcement of the album. The album, "Party People's Anthem", was released on July 2, 2015, under Artery Recordings.
+Stay Sick.
+On July 16, 2014, Fronzak launched the imprint label Stay Sick Recordings, created alongside Artery Recordings, and announced that the label had signed pop-punk band Old Again. The band has since signed metalcore outfit The Plot in You, deathcore band Enterprise Earth, electronicore band It Lives It Breathes, and post-hardcore/metalcore band Vesta Collide.
+In July 2020, the label rebranded itself as Modern Empire Music. It's unclear whether or not Fronz has any involvement with the label following its rebrand.
+Personal life.
+Fronzak has two sons with his former girlfriend, born in 2014 and 2015. He shares one more son with his current spouse Hayes, born in 2022
+Over the summer of 2020, it was confirmed that Fronzak had begun creating pornographic content for OnlyFans. He regularly collaborates with other adult stars in the space.
+On Sept 4, 2023, Fronzak announced on Instagram and X (formerly known as Twitter), that he was running for President of the United States as a Libertarian.
+Controversies.
+Fronzak has been involved in a few controversial situations.
+One of his biggest controversies regards Senses Fail's singer Buddy Nielsen. In 2014, Nielsen attacked Attila for the song "Proving Grounds", stating that it insulted the LGBT community. Fronzak replied to Nielsen, "If you think I'm homophobic in any way possible, you're clearly either an idiot or you're in a washed-up band that nobody cares about". During Warped Tour in 2015, Attila and Senses Fail toured together and Fronzak accused them of leaving a sign at the Attila merch table calling them "homophobes". Moreover, he accused Nielsen of spending every day on stage "to talk shit about Attila".
+In April 2015, during a concert in Perth, Fronz was assaulted on stage. He eventually responded by retaliating against an innocent bystander and apologized.
+A diss song entitled "Callout", which was released in 2013, featured numerous attacks against the likes of Jonny Craig, Ronnie Radke, Christofer Drew, and Mike Reynolds. On February 15, 2018, Attila self-released a sequel song titled "Callout 2" in which Fronz called out more than 50 people for different reasons, including Logan Paul, RiceGum, Bhad Bhabie, Harvey Weinstein, Offset, Martin Shkreli, Westboro, Buddy Nielsen, Jeffree Star, Danny Worsnop, Denis Stoff, Tim Lambesis, Frankie Palmeri, Conor McGregor, Kim Kardashian, Ronda Rousey, Tyler Carter, 6ix9ine. Fronzak eventually explained some days later the meaning behind the song.
+On August 22, 2018, during a Las Vegas concert, he assaulted a nearby security guard by punching him in the back of the head and then throwing his microphone. According to Fronzak, his motive for the outburst was that the security were being too rough when handling audience members.
+In June 2020, Fronzak was accused of sexual misconduct with an underage fan. Fronzak admitted to the encounter, claiming the fan lied about her age.
+Discography.
+Solo career.
+Studio albums
+With Attila.
+Studio albums
+With Bone Crew.
+Studio albums
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 2: 18202171 [Max Carl] - American songwriter
+Max Carl Gronenthal (born January 29, 1950) is an American rock singer, keyboardist, guitarist and songwriter. He is the co-lead singer of the classic rock band Grand Funk Railroad. In addition, he spent several years as the keyboardist and lead singer for the southern rock band 38 Special. Carl is known for having co-written and sung lead vocals on 38 Special's hit song, "Second Chance" (1989).
+Early life.
+Carl was born in 1950 in Platte Center, Nebraska, United States, and raised near the town of Humphrey, graduating from high school in Norfolk, Nebraska in 1968.
+Music career.
+Early career.
+Throughout 1968–69, Carl played a significant role as a member of the Norfolk-based New Breed Blues Band, during which time he enhanced his interest in rhythm and blues music. Beginning as a saxophonist in this band, he later became the lead vocalist/keyboardist in the group. However, in 1969, he left the band to join the Lincoln-based Chancellors.
+During the 1970s, Carl served stints with numerous bands across the Midwest, including The Fabulous Flippers out of Lawrence, Kansas, pausing briefly in 1976 to study piano and refine and improve his songwriting abilities in Oklahoma City. He frequently performed with fellow Midwesterner Tommy Bolin in various jazz/rock fusion groups. By the late-1970s, Carl had graduated to performing on albums by "bigger names," such as Rod Stewart and Dusty Springfield.
+Around this time, Carl decided to begin recording as a solo artist. His debut album, "Whistling in the Dark" was released in 1979 under his given name, Max Gronenthal.
+1980s.
+Carl released a second solo album, "Max", in 1980.
+Throughout the 1980s, Carl immersed himself in session work, singing and/or playing on albums by artists such as Elton John, Dan Fogelberg, Bonnie Raitt, Don Henley, Glenn Frey, Timothy B. Schmit, Bette Midler, and Kenny Loggins. In 1982, he also formed what started as a 1960s R&amp;B cover band, eventually named Jack Mack and the Heart Attack. Featuring a four-piece horn section, the band played classic R&amp;B, Soul and also incorporated some Max Carl-penned original R&amp;B-styled songs into their repertoire, including the classic "Cardiac Party." Their Thursday night residency at the Club Lingerie in Hollywood was legendary. After Max Carl left the band, Jack Mack was no longer a “cover band,” became the Late Show band, and appeared in many TV shows and movies, including the cult classic, "Tuff Turf".
+In addition to performing, Carl also found time during the mid-1980s to compose tunes for various movie soundtracks, performing on many of them as well. Films such as "Spring Break" (1983), "Police Academy" (1984), "Grandview, U.S.A." (1984), "Tuff Turf" (1985), and "Doin' Time" (1985) include his compositions. In 1986, he would co-write "Come and Follow Me" as a duet with Marcy Levy (Marcella Detroit), which played during the closing credits of the movie "Short Circuit". He also performed the theme song to the 1987 animated series "Spiral Zone".
+Meanwhile, in 1984, Carl left Jack Mack and the Heart Attack to record his third solo album. Unlike the first two solo albums, "The Circle" would be released under his stage name Max Carl. The album's title track would be included on the soundtrack for the John Hughes film "Weird Science". Later that same year, Carl was invited to join .38 Special, a request that he eventually accepted.
+Carl rehearsed with the band frequently, and by 1988, he joined forces with the southern rock stylings of .38 Special. That year, the band would release the "Rock &amp; Roll Strategy" album, which included the Cal Curtis/Jeff Carlisi tune that Carl reworked (earning him an additional writing credit) his personal experience into "Second Chance," featuring Carl on lead vocals. "Second Chance" introduced .38 Special into a whole new market when it reached the top of the Adult Contemporary chart in early 1989.
+1990s.
+Carl remained in .38 Special into the 1990s, but left shortly after the release of the band's "Bone Against Steel" album in 1991.
+At this point, Carl moved to Nashville, where he continued to write/perform on tunes for the likes of Joe Cocker, Bad Company, Richard Marx, and Charlie Daniels. Later in the '90s, he became fascinated with a "family" of musicians in Mississippi who performed a very original historical and heartland-infused brand of music. Relocating to Mississippi, Carl began performing with this group of musicians, forming what would become Max Carl and the Big Dance. This experience ultimately culminated in the release of the album "One Planet – One Groove" (under the "Max Carl and the Big Dance" moniker) in 1998. Featured on this album are several of Carl's original compositions fused with this new "southern funk"/"Mississippi sound," as well as covers of various 60s hits done in this style.
+Later career.
+Carl is involved in the Speed Channel's grassroots drag racing competition "Pinks" franchise. He is the composer and performer of the theme music as well as transitional music throughout the show. Through this endeavor, he has released a CD soundtrack for the show entitled "Max Carl: Fuel", produced by Max &amp; Steve Music, LLC.
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 3: 3437671 [Denis Bélanger] - Canadian singer
+Denis "Snake" Bélanger (born August 9, 1964) is a Canadian singer and songwriter. He is the lead singer and lyricist of heavy metal band Voivod.
+Early life.
+Bélanger was born on August 9, 1964 and grew up in Jonquière, Quebec.
+Career.
+Bélanger joined Michel Langevin, Denis D'Amour and Jean-Yves Thériault to form Voivod in 1982, in northern Quebec. He appeared on the albums "War &amp; Pain", "Rrröööaaarrr", "Killing Technology", "Dimension Hatröss", "Nothingface", "Angel Rat" and "The Outer Limits". 
+Bélanger departed the group in 1994, after completing a tour in support of "The Outer Limits". He formed his own band, Union Made with Peter Jackson and worked on the song "Dictatosaurus" with Dave Grohl's side project dubbed Probot.
+Bélanger rejoined Voivod in 2002 and appeared on the albums, "Voivod" (2003), "Katorz" (2006), "Infini" (2009), "Target Earth" (2013), and "The Wake" (2018). This last album won a Juno Award for Heavy Metal Album of the Year.
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 4: 3693842 [Daniel Bélanger] - Daniel Bélanger (born December 26, 1961) is a Canadian singer-songwriter. His music is eclectic, inspired by alternative rock, folk, and electronic music, sometimes humorous, sometimes wistful.
+Biography.
+In 1983, Bélanger founded the band Humphrey Salade with Norman Lachance, Eric Maier, and Jean Gauvin. Unfortunately, the timing was not right and the band never recorded.
+His first solo album released in 1992, "Les Insomniaques s'amusent" has sold 175,000 copies and won the Félix for best pop-rock album. The first single released "Opium" was number one in Quebec for seven weeks and won the Félix for Videoclip of the Year. This first album also earned him the ADISQ awards for Bestselling Album of the Year, Male Performer of the Year, and Show of the Year in 1994.
+In 1996, "Quatre saisons dans le désordre" was released. The album was a critical and popular success, winning the (Félix for the Pop-Rock Album, Singer-Songwriter, and Show of the Year, in the singer-songwriter category). The album was certified Platinum and titles like "Les deux printemps", "Sortez-moi de moi," and "Les Temps fous" (Félix for Videoclip of the Year) topped the charts.
+1998: Daniel Bélanger toured as a solo artist honing his skills as a musical performer who enhanced his act with amusing stories and anecdotes; this led to the recording of an unusual album, "Tricycle" (1999), featuring excerpts from performances recorded at different points in his career.
+2000: Daniel Bélanger released "Erreur d’impression", a collection of 150 whimsical stories and reflections. He founded the publishing house "Coronet liv". He continued to take part in major shows, including the opening concert of the 12th FrancoFolies de Montréal.
+In October 2001, Bélanger released "Rêver mieux". The album was an immediate success, winning (seven ADISQ awards in 2002, including Pop-Rock Album of the Year, and the following year, the ADISQ award for Videoclip of the Year for "Dans un Spoutnik", the Juno Award for Francophone Album of the Year and was certified platinum.
+Bélanger has also achieved critical acclaim for the music he has written for films. He was nominated for a Genie Award for Best Original Song for the movie theme "Le Dernier souffle" in 2000, and Jutra for Best Music for "L’Audition" in 2006).
+"L'Échec du matériel", released in April 2007, is an album just as poetic and melodious as "Rêver mieux", but more rooted in the concerns and aspirations of his contemporaries.
+Belanger won the 2008 Juno Award for Francophone Album of the Year for "L'Échec du matériel". In November 2009, he released his album "Nous" and, once again, won the Félix for the Pop-Rock Album in 2010.
+In 2010 he wrote the music for the French musical "Les Belles-Soeurs" and its 2014 English adaptation, "".
+In 2018 his album "Paloma" was named Francophone Album of the Year at the Juno Awards.
+In 2020 he appeared as a guest vocalist on "Signal", a track on electronic musician CRi's album "Juvenile". In the same year he released "Travelling", an album of instrumental music inspired by film soundtracks. This release gave him the prize of best instrumental album of the year at the ADISQ Gala
+His 2022 album "Mercure en mai" was a Juno nominee for Francophone Album of the Year at the Juno Awards of 2023.
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 5: 41481358 [Jonny Polonsky] - American musician
+Jonny Polonsky (born July 10, 1973) is an American songwriter, rock guitarist, singer, multi-instrumentalist and record producer.
+Career.
+Born in Chicago, Illinois and raised in suburban Wilmette, Illinois, Polonsky began writing, recording and self-releasing homemade cassettes as a teenager, under the name The Amazing Jonny Polonsky. 
+Marc Ribot introduced New York composer John Zorn to these early tapes, and Zorn invited Polonsky to play his New Jewish Music festival in 1992 at CBGB's Gallery. Polonsky's band featured Marc Ribot on guitar, Sebastian Steinberg (Soul Coughing) on bass, and Sim Cain (Rollins Band) on drums. Of that performance, singer Jeff Buckley (who was in attendance) was later quoted as saying, "He came to CBGB's Gallery and ripped it up...He killed 'em...The charm of it is that he's brought it into his own thing. It's a nice miniature. He does it with soul; you can tell the difference between someone who just slips into The Beatles or something and someone like him."
+A year later Reeves Gabrels introduced Polonsky to Frank Black, who became an immediate fan. In 1994, original Pixies manager Ken Goes began representing Polonsky, and Frank Black produced a demo for him. On the strength of this demo recording, iconic record producer Rick Rubin signed Polonsky as a solo artist to his label American Recordings.
+The Frank Black-produced demos were eventually scrapped, and Polonsky decided to rerecord the songs in his childhood home in Wilmette, using digital home recording equipment. He produced, recorded and performed everything himself on his debut record for American. "Hi My Name is Jonny" was mixed by Brendan O'Brien and was released by American Recordings on January 16, 1996. It received a positive critical reception from international news outlets, from The New York Times to MTV.
+Immediately after the record's release, Polonsky and his live band toured as the main support act for Frank Black for twelve weeks in North America. They also performed on the Second Stage for the 1996 Lollapalooza summer tour.
+Polonsky then disappeared from recording and touring as a solo artist. He reemerged as a touring musician in the late 1990s and into the new millennium with Local H and Pete Yorn, among others.
+In 2004 Polonsky released "The Power of Sound", and he and his band supported Audioslave on their five-week North American club tour in the spring of 2005.
+In 2006, Polonsky formed the short-lived band Big Nose with Brad Wilk and Tim Commerford of Rage Against the Machine and Audioslave. Big Nose collaborated on two songs with Tool and A Perfect Circle frontman Maynard James Keenan. Keenan ended up using the two songs, "Sour Grapes" and "Momma Sed", for his music/art project Puscifer. Polonsky wrote, recorded and toured with Puscifer from 2007 to 2010.
+Since that time, he has also recorded and/or performed with Johnny Cash., Neil Diamond, and Dixie Chicks
+In 2012, Polonsky released his third full length, "Intergalactic Messenger of Divine Light and Love" as an internet only digital release. It was recorded in Rick Rubin's recording studio, Akademie Mathematique of Philosophical Sound Research, and mixed by engineer Jim Scott.
+In 2015, "The Other Side of Midnight" was released. It was performed, produced and recorded by Polonsky, and mixed by Dean Hurley at David Lynch's Asymmetrical Studios.
+Polonsky's fifth full length record, "Fresh Flesh" was released in January 2018. It was recorded with his live band in two days at Rick Rubin's studio, Shangri La Studios, in Malibu CA. It features guest performances by vocalist Mark Lanegan (Screaming Trees and Queens of the Stone Age), and drummer Kevin Haskins of Bauhaus (band), Love and Rockets (band), and Tones on Tail.
+"Kingdom of Sleep," Polonsky's sixth full length studio album was released on March 6, 2020. Cedric Bixler-Zavala, singer of The Mars Volta and At the Drive-In contributed vocals to the record. A subsequent European tour, completed just before the pandemic lockdown, was filmed for a documentary. "Hi My Name is Jonny Polonsky," directed by Otto-Jan Ham and Sjoerd Tanghe, was released later that year and went on to win Best Documentary at the Flemish Ensor Awards, the Belgian equivalent of the Academy Awards. 
+Polonsky's second full length release of 2020, and seventh overall studio album, "Power and Greed and Money and Sex and Death" was written and recorded during the COVID-19 pandemic lockdown in the spring and summer of 2020. It features guest appearances by Jane Wiedlin of The Go-Gos on vocals, and Hong Wang of the Kung Fu Panda soundtracks on erhu.
+In 2021, Polonsky joined the band 7D7D, with Tim Commerford of Rage Against the Machine on bass and lead vocals, and Mathias Wakrat on drums. The trio began releasing music in late 2022. 
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 6: 76698794 [Noah Sebastian] - American singer (born 1995)
+Noah Sebastian (born October 31, 1995) is an American singer best known as the lead singer of the metalcore band Bad Omens. He is also the group's main songwriter and producer alongside guitarist Joakim Karlsson.
+Career.
+At age 12, Noah Sebastian joined an Enter Shikari cover band. Inspired by the bands The Plot in You and Beartooth, at the age of 16 he began learning how to produce and compose music. In 2013, he left the band he played as a guitarist in Washington, D.C. and formed Man Vs. Self, later renamed Bad Omens. After listening to a demo tape, Sumerian Records offered the group a contract and Sebastian recruited a full lineup for the band. After the release of the singles "Glass Houses" and "Exit Wounds", the group went on their first tour in 2016. Their follow-up single, "The Worst in Me", reached one million streams shortly after its release.
+In June 2023, the singer participated in the Artist Friendly podcast along with Joel Madden. In October, Bad Omens had to cancel live performances due to Sebastian's health problems. On Bad Omens' joint tour with Bring Me the Horizon in 2024, he joined the stage during their show to sing "Antivist" with Oliver Sykes. In January 2024, Bad Omens released the single "V.A.N" in collaboration with singer Poppy; the vocals were performed solely by her.
+Musical style and composition.
+Sebastian wrote Bad Omens' biggest hit "Just Pretend", which went viral and was certified Platinum by the RIAA, and also directed its music video. He said that the song was originally written in a satirical way to fit the formula of a song that would be successful – which is what happened. However, the vocals pleased him, and Bad Omens tweaked the song to suit the band.
+In an interview with "Kerrang!" magazine, he stated that he produces music based on what he likes, not what is successful and that he seeks to create music that is different from other bands. For NME, the self-taught singer said he strove to improve his vocal skills during the COVID-19 pandemic, and because of this, "The Death of Peace of Mind" was produced around vocals. Sebastian 
+is tenor.
+Bad Omens' self-titled album was widely compared to Bring Me the Horizon's "Sempiternal", and Sebastian said that in fact the band was one of his biggest inspirations.
+Personal life.
+Sebastian grew up in Richmond, Virginia with his family consisting of his mother and grandparents. At age 15, he stopped attending school and left home, moving in with friends.
+He told Crunchyroll that he usually watches anime; as a child, he watched "Naruto" and became a fan of the series. He also mentioned "Elfen Lied" as one of his favorites. When asked how this influenced his music, he said that in "Suffocate", a collaboration with EDM artist Kayzo, he used a quote from Naruto.
+Discography.
+Bad Omens
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 7: 4838577 [Jay Yuenger] - American guitarist
+Jay Noel Yuenger also known by the stage name "J.", is an American rock guitarist best known for his work with heavy metal band White Zombie.
+Career.
+As a teenager, Yuenger's interests quickly progressed from pop to hard rock to hardcore punk. He began learning guitar and played a small part in the early 1980s Chicago hardcore scene, forming the teen punk band Rights of the Accused in 1982. They released the 7-inch EP, "Innocence", in 1983 and opened for several noteworthy groups including Minor Threat, MDC, the Big Boys, Flipper, and Discharge. Yuenger left the band in 1985, attended college, and by 1987 had moved to New York City. After several failed attempts at forming groups in New York and New Jersey, he met the members of White Zombie in early 1989 and auditioned successfully to join the group as their guitar player. The band released the previously recorded "Make Them Die Slowly" on Caroline Records, toured the US and Europe, and recorded the "God of Thunder" 12-inch EP (also issued on Caroline). In 1990, the group signed to Geffen Records and recorded their major label debut, ', which eventually went on to sell over 2 million copies. During the next five years the band was almost constantly on tour, pausing only to record the triple platinum-selling '. They also contributed songs to various movie soundtracks and compilation albums and ended up selling over 6 million records worldwide. Since the official disbandment of White Zombie in 1997, Yuenger has lived in Los Angeles, Chicago, and New York and has worked as a recording engineer and record producer. In 2004, he recorded King Louie Bankston's King Louie One Man Band LP entitled "Chinese Crawfish", which was released on Goner Records. He currently lives in Madrid.
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 8: 36596330 [Olugbenga Adelekan] - Nigerian music producer
+Olugbenga Adelekan, also known as Olugbenga, is a Nigerian-born music producer. Olugbenga performs as a solo artist and as the bass player of the Mercury Music Prize Award-nominated band Metronomy.
+Biography.
+Born in Lagos, Nigeria, Olugbenga moved with his family to The Hague, The Netherlands before returning to Nigeria in his teens. At the age of 16 he settled in England, where he started making original music.
+Olugbenga studied English literature at King's College, Cambridge.
+He is married and has children. Olugbenga's brother Seye Adelekan is also a professional musician, playing with Gorillaz as their live bassist.
+Live performances.
+In 2012, Olugbenga toured Asia, Australia, Russia and the UK, as well as festivals across Europe including Field Day (UK), Dot to Dot Festival (UK), off Sonar (Spain), Soundwave Festival (Croatia), Kendal Calling (UK) and Summer Sundae Weekender (UK).
+Olugbenga performs using Ableton Live and MIDI controllers.
+Personal life.
+Adelekan has two children, Ravi and Maya. In 2022, Adelekan released a charity single alongside Ravi after Ravi underwent surgery to remove a benign tumour from his brain. The single also featured Bastille (band) and Paloma Faith. In 2024, Adelekan, Ravi and his family appeared on the seventeenth series of Britain's Got Talent under the name Ravi's Dream Team, alongside a group of doctors, teachers and other children with brain tumours. The group reached the Semi-Finals of the show.
+Discography.
+Olugbenga has released music both under his own name and under Eku Fantasy, his side project with Gareth Jones aka Jumping Back Slash (No relation to Gareth Jones). He has also done remixes of several artists' songs.
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 9: 2665776 [Eric Peterson (guitarist)] - American musician (born 1964)
+Eric Stanley Peterson (born May 14, 1964) is an American musician, best known as the rhythm guitarist of the thrash metal band Testament and the only remaining original member left in the band, which first started in 1983 under the name Legacy. He and lead vocalist Chuck Billy are the only members to appear on all of the band's studio albums.
+Peterson also has a side project black metal band called Dragonlord, in which he plays guitar and also sings. In Testament, Peterson was originally a rhythm guitarist while Alex Skolnick handled all lead work. More recently though, Peterson plays leads along with Skolnick.
+Musical influences.
+Peterson has cited Led Zeppelin, Black Sabbath, Aerosmith, Kiss, Judas Priest, Boston, Scorpions, UFO, Montrose, Pat Travers and Mahogany Rush (with Frank Marino) as influences and inspirations to him. When forming the sound of Legacy/Testament, he had been influenced by the band's Bay Area peers Metallica and Exodus, in addition to NWOBHM bands such as Judas Priest, Venom, Saxon and Angel Witch, and European heavy metal bands like Mercyful Fate.
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+Rank 10: 2850526 [Rob Dehlinger] - American singer-songwriter
+Rob Dehlinger is a singer, trumpet player, and composer living in the San Francisco Bay Area. He is the frontman for “Robert Dehlinger’s Alpha Rhythm Kings”.
+As a live trumpeter and backup vocalist, Rob has worked with many performers including Ledisi, Wanda Jackson, Dan Aykroyd, Meat Loaf, Michael Bolton, and Lena Prima. Rob was a member of the band "Stompy Jones" from 2006 to 2017.
+Rob is "an exhilarating, charismatic trumpet player" and a "magnetic" singer, according to Jazz Corner (March 28, 2018).
+Dehlinger's music, jingles, and other audio productions are featured heavily in the world of podcasts, especially in those which focus on topics related to Disney properties (Star Wars in particular). He is referred to as the "John Williams of Podcasting" by hosts and fans of shows such as 
+"Skywalking Through Neverland", "The Neverland Podcast", "Talking Apes TV", "Rebel Force Radio", "Disney Vault Talk", "Fangirls Going Rogue", "Almost Famous", and others.
+Rob composed the musical score for the film “Portable Storage”, which enjoyed a screening at Lucasfilm/ILM in San Francisco, and was released in 2016.
+Rob has appeared on the nationally televised PBS specials "A Taste of Chanukah" and "A Taste of Passover", as well as an Emmy-award-winning episode of the Bay Area PBS arts show "Spark". Rob works routinely in the Bay Area venues, including Slim's, Great American Music Hall, Yoshi's, Bimbo's, Yerba Buena Center for the Arts, Bill Graham Civic Auditorium, the Regency Ballroom, and George Lucas' Skywalker Sound studios. He performs regularly at Disneyland in Anaheim, California, and has toured Europe and Australia.
+Dehlinger's orchestral arrangement of Iggy Pop's "Lust For Life" was recorded by San Francisco's Punk Rock Orchestra with Grammy winning engineer Leslie Ann Jones, and was featured on NPR's Weekend Edition.
+Rob's band, the Alpha Rhythm Kings, performed for the 2018 Grammy Awards Nominee Celebration, San Francisco Chapter. He holds bachelor's and master's degrees from the New England Conservatory in Boston, MA.
+Dehlinger is also a prominent music educator in the San Francisco Bay Area.
+Discography.
+With “Robert Dehlinger’s Alpha Rhythm Kings”
+As a Solo Artist
+As a Band Member
+As a Side Man
+References.
+&lt;templatestyles src="Reflist/styles.css" /&gt;
+https://contracostatoday.com/2018/02/08/music-around-the-bay-ep-005-rob-dehlinger/
+http://www.jazzcorner.com/news/display.php?news=8560
+http://nodepression.com/interview/frontmantrumpeter-robert-dehlinger-debuts-alpha-rhythm-kings-swinging-energy

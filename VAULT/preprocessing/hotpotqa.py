@@ -82,7 +82,7 @@ class HotPotQAShortProcessor(HotPotQAProcessor):
                 for doc in tqdm(dataset.docs_iter()):
                     docid = int(doc.doc_id)
                     doc_obj = {
-                        "_id": docid,
+                        "_id": str(docid),
                         "text": doc.text, 
                         "title": doc.title
                     }

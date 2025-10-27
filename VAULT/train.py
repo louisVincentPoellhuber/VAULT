@@ -49,12 +49,13 @@ def get_model(model_args, data_args):
                 segments=model_args.segments,
                 doc_token_init=model_args.doc_token_init,
                 output_attentions=model_args.output_attentions,
-                pooling_strategy=model_args.pooling_strategy
+                output_passage_embeddings=model_args.output_passage_embeddings
             )
         model = LongtrieverRetriever(
                 model=encoder,
                 normalize=data_args.normalize,
-                loss_function=data_args.loss_function
+                loss_function=data_args.loss_function, 
+                output_passage_embeddings=model_args.output_passage_embeddings
             )     
     elif model_args.model_type=="bert":
         encoder = BertModel.from_pretrained(
@@ -69,11 +70,8 @@ def get_model(model_args, data_args):
     return model
 
 def get_dataset(model_args, data_args, training_args):
-    if "pretrain" in model_args.model_type: # Pretrained dataset if we're pretraining
-        dataset = DatasetForPretraining(data_args)
-    else:
-        dataset = DatasetForFineTuning(data_args)
-        log_message(f"Streaming data: {dataset.streaming}", print_message=True)
+    dataset = DatasetForFineTuning(data_args)
+    log_message(f"Streaming data: {dataset.streaming}", print_message=True)
 
     return dataset
 
@@ -116,7 +114,7 @@ def get_data_collator(model_args, data_args):
 def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "longtriever_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "hier_passage.json"))
         # config_path = "/u/poellhul/Documents/Masters/VAULT/configs/pubmedbert_test.json"
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:

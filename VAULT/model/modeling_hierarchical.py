@@ -11,7 +11,6 @@ class HierarchicalLongtrieverConfig(BertConfig):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.pooling_strategy = kwargs.get("pooling_strategy", "mean")  
 
 class HierarchicalLongtrieverEmbeddings(BertEmbeddings):
     def __init__(self, config, **kwargs):
@@ -131,10 +130,10 @@ class HierarchicalLongtrieverEmbeddings(BertEmbeddings):
 class BlockLevelHierarchicalContextawareEncoder(nn.Module):
     def __init__(self, config, **kwargs):
         super().__init__()
-        self.config = config
         self.text_encoding_layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
         self.information_exchanging_layer = nn.ModuleList([BertLayer(config) for _ in range(config.num_hidden_layers)])
-        # Defaults: inter_block_encoder=True, doc_token=False, cls_position="first", end_separator=False
+        self.output_attentions = config.output_attentions
+        self.output_passage_embeddings = kwargs.get("output_passage_embeddings", False)
 
     def update_blockwise_cls_tokens(self, cls_hidden_states, hidden_states, B, N, L_, D):
         extended_cls_tokens = cls_hidden_states.repeat(N, 1, 1, 1).view(B, N, N, D)
@@ -166,40 +165,42 @@ class BlockLevelHierarchicalContextawareEncoder(nn.Module):
     ): # B = batch size, N = nb of blocks, L_ = sequence length, D = hidden size
         _, L_, D = hidden_states.shape
         B, _, _, N_ = node_mask.shape
-        N=N_-1
+        if not self.output_passage_embeddings:
+            N=N_-1
+        else:
+            N=N_
 
         for i, layer_module in enumerate(self.text_encoding_layer):
-            # inter_block_encoder = True, so first layer has special attention mask
-            if i > 0:
-                layer_outputs = layer_module(hidden_states, attention_mask, output_attentions=self.config.output_attentions)
-            else: # The first layer
-                temp_attention_mask = attention_mask.clone()
-                temp_attention_mask[:,:,:,0] = -10000.0
-                layer_outputs = layer_module(hidden_states, temp_attention_mask, output_attentions=self.config.output_attentions)
-                reduce_hidden_states=reduce_hidden_states[None,:,:].repeat(B,1,1) # repeat it for all 3 examples in batch
+            layer_outputs = layer_module(hidden_states, attention_mask, output_attentions=self.output_attentions)
 
+            reduce_hidden_states=reduce_hidden_states[None,:,:].repeat(B,1,1) # repeat it for all 3 examples in batch
             hidden_states = layer_outputs[0]
 
-            # inter_block_encoder = True
             hidden_states = hidden_states.view(B, N, L_, D)
-            # cls_position = "first", doc_offset = 0
             cls_hidden_states = hidden_states[:, :, 0, :].clone()
 
             if N>1: # Pointless to do for small document and queries
                 hidden_states = self.update_blockwise_cls_tokens(cls_hidden_states, hidden_states, B, N, L_, D)
 
-            reduce_cls_hidden_states=torch.cat([reduce_hidden_states,cls_hidden_states],dim=1) #[B,N+1,D] So it's the doc token [DOC] with every block's [CLS] token
-            station_hidden_states = self.information_exchanging_layer[i](reduce_cls_hidden_states, node_mask, output_attentions=self.config.output_attentions)[0]
-            reduce_hidden_states = station_hidden_states[:,:1,:]
-            hidden_states[:, :, 0, :] = station_hidden_states[:,1:,:] # Replace the placeholder DOC tokens by the actual DOC tokens
-            hidden_states = hidden_states.view(B * N, L_, D)
+            if not self.output_passage_embeddings:
+                reduce_cls_hidden_states=torch.cat([reduce_hidden_states,cls_hidden_states],dim=1) #[B,N+1,D] So it's the doc token [DOC] with every block's [CLS] token
+                station_hidden_states = self.information_exchanging_layer[i](reduce_cls_hidden_states, node_mask, output_attentions=self.output_attentions)[0]
+                reduce_hidden_states = station_hidden_states[:,:1,:]
+                hidden_states[:, :, 0, :] = station_hidden_states[:,1:,:] # Replace the placeholder DOC tokens by the actual DOC tokens
+                hidden_states = hidden_states.view(B * N, L_, D)
 
-        return (reduce_hidden_states, hidden_states, )
+                return (reduce_hidden_states, hidden_states, )
+            
+            else:
+                station_hidden_states = self.information_exchanging_layer[i](cls_hidden_states, node_mask, output_attentions=self.output_attentions)[0]
+                hidden_states = hidden_states.view(B * N, L_, D)
+            
+                return (station_hidden_states, hidden_states, )
+
     
 class MeanPooling(nn.Module):
     def __init__(self, config, **kwargs):
         super().__init__()
-        self.config = config
 
     def forward(self, cls_hidden_states: Tensor) -> Tensor:
         return cls_hidden_states.mean(dim=1)
@@ -207,7 +208,6 @@ class MeanPooling(nn.Module):
 class AttentionPooling(nn.Module):
     def __init__(self, config, **kwargs):
         super().__init__()
-        self.config = config
         self.attention_layer = nn.Linear(config.hidden_size, 1)
 
     def forward(self, cls_hidden_states: Tensor) -> Tensor:
@@ -247,20 +247,19 @@ class HierarchicalLongtriever(Longtriever):
         super().__init__(config, **kwargs)
         self.embeddings = HierarchicalLongtrieverEmbeddings(config, **kwargs)
         self.encoder = BlockLevelHierarchicalContextawareEncoder(config, **kwargs)
-        # inter_block_encoder = True, so no pooler needed
+        self.output_passage_embeddings = kwargs.get("output_passage_embeddings", False)
 
     def forward(
         self,
         input_ids,
         attention_mask,
         sentence_mask=None,
-        return_last_hiddens=False,
         token_type_ids=None
     ):
         if sentence_mask is None:
             sentence_mask = (torch.sum(attention_mask,dim=-1)>0).to(dtype=attention_mask.dtype)
-        # sentence = blocks
-        sentence_mask = torch.cat([torch.ones_like(sentence_mask[:,:1]),sentence_mask],dim=1)
+        if not self.output_passage_embeddings:
+            sentence_mask = torch.cat([torch.ones_like(sentence_mask[:,:1]),sentence_mask],dim=1)
 
         input_shape = input_ids.size()
         batch_size, sent_num, seq_length = input_shape
@@ -277,16 +276,11 @@ class HierarchicalLongtriever(Longtriever):
         encoder_outputs = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,
-            reduce_hidden_states=self.doc_embeddings,
+            reduce_hidden_states=self.doc_embeddings, # TODO: Verify DOC token usage
             node_mask=extended_sentence_mask,
         )
 
-        # inter_block_encoder = True
-        text_vec = encoder_outputs[0].squeeze(1)
+        text_vec = encoder_outputs[0]
 
-        if not return_last_hiddens:
-            return text_vec
-        else:
-            last_hiddens=encoder_outputs[1].view(batch_size,sent_num,seq_length,self.config.hidden_size)
-            return (text_vec, last_hiddens) #[B,D] and #[B,N,L,D]
+        return text_vec
     

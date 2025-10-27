@@ -147,3 +147,16 @@ class CustomEvaluateRetrieval(EvaluateRetrieval):
                 logging.info(f"{k}: {eval[k]:.4f}")
 
         return ndcg, _map, recall, precision, mrr
+
+
+class CustomEvaluateReranking(CustomEvaluateRetrieval):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def retrieve(
+        self, corpus: dict[str, dict[str, str]], queries: dict[str, str], **kwargs
+    ) -> dict[str, dict[str, float]]:
+        if not self.retriever:
+            raise ValueError("Model/Technique has not been provided!")
+        return self.retriever.rerank(corpus, queries, self.top_k)
+        

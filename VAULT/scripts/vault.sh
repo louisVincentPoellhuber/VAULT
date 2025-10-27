@@ -5,6 +5,7 @@ export VAULT_DIR=/Tmp/lvpoellhuber/datasets/vault
 # bash scripts/process_all.sh
 
 # bash scripts/hierarchical.sh
+bash scripts/hierarchical-passage.sh
 
 # bash scripts/bert.sh
 
@@ -12,9 +13,9 @@ export VAULT_DIR=/Tmp/lvpoellhuber/datasets/vault
 
 # bash scripts/longtriever.sh
 
-python baselines.py
+# python baselines.py
 
 # TODO: Remove and uncomment from process_all.sh
-echo "Processing Doris-MAE." 
-python preprocessing/doris_mae.py
+# echo "Processing Doris-MAE." 
+# python preprocessing/doris_mae.py
 

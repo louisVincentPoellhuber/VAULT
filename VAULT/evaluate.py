@@ -45,7 +45,8 @@ def get_data_collator(model_args, data_args):
                 tokenizer,
                 data_args.max_query_length,
                 data_args.max_corpus_length,
-                data_args.max_corpus_sent_num
+                data_args.max_corpus_sent_num, 
+                model_args.output_passage_embeddings
             )
             
     # elif model_args.model_type=="YOUR_MODEL"  # You can implement your data collator here. 
@@ -71,13 +72,14 @@ def get_model(model_args, data_args):
         encoder = HierarchicalLongtriever.from_pretrained(
                 model_args.model_name_or_path,
                 segments=model_args.segments,
-                pooling_strategy=model_args.pooling_strategy
+                output_passage_embeddings=model_args.output_passage_embeddings
             )
         model = LongtrieverRetriever(
                 model=encoder,
                 normalize=data_args.normalize,
                 loss_function=data_args.loss_function,
-                data_collator=data_collator
+                data_collator=data_collator, 
+                output_passage_embeddings=model_args.output_passage_embeddings
             )     
     elif model_args.model_type=="bert":
         encoder = BertModel.from_pretrained(
@@ -159,7 +161,7 @@ def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
         # TODO: Remove configs maybe?
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "dpr_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "bert_test.json"))
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()

@@ -7,17 +7,29 @@ from beir.retrieval.models.util import extract_corpus_sentences
 from tqdm import trange
 from .data_handler import DataCollatorForEvaluatingLongtriever, DataCollatorForEvaluatingBert
 
+def compute_multi_passage_loss(loss_fct, co_query_embeddings, co_corpus_embeddings, **kwargs):
+    total_loss = 0.0
+    num_passages = co_corpus_embeddings.size(1)
+    
+    for i in range(num_passages):
+        passage_embeddings = co_corpus_embeddings[:, i, :]
+        loss = loss_fct(co_query_embeddings, passage_embeddings, **kwargs)
+        total_loss += loss
+    
+    avg_loss = total_loss / num_passages
+    return avg_loss
+
 def compute_contrastive_loss(co_query_embeddings, co_corpus_embeddings, **kwargs):
         
     similarities_1 = torch.matmul(co_query_embeddings, co_corpus_embeddings.transpose(0, 1))
     similarities_2 = torch.matmul(co_query_embeddings, co_query_embeddings.transpose(0, 1))
     similarities_2.fill_diagonal_(float('-inf'))
 
-    # If there are negative embeddings, compute their similarities and append them to the queries's similarities
-    co_neg_embeddings = kwargs.get("co_neg_embeddings", None)
-    if co_neg_embeddings is not None:
-        similarities_3 = torch.matmul(co_query_embeddings, co_neg_embeddings.transpose(0, 1))
-        similarities_2 = torch.cat([similarities_2, similarities_3], dim=1)
+    # # If there are negative embeddings, compute their similarities and append them to the queries's similarities
+    # co_neg_embeddings = kwargs.get("co_neg_embeddings", None)
+    # if co_neg_embeddings is not None:
+    #     similarities_3 = torch.matmul(co_query_embeddings, co_neg_embeddings.transpose(0, 1))
+    #     similarities_2 = torch.cat([similarities_2, similarities_3], dim=1)
 
     similarities=torch.cat([similarities_1,similarities_2],dim=1)
     labels=torch.arange(similarities.shape[0],dtype=torch.long,device=similarities.device)
@@ -28,10 +40,10 @@ def compute_cross_entropy_loss(co_query_embeddings, co_corpus_embeddings, **kwar
     similarities = torch.matmul(co_query_embeddings, co_corpus_embeddings.transpose(0, 1))
     labels=torch.arange(similarities.shape[0],dtype=torch.long,device=similarities.device)
 
-    co_neg_embeddings = kwargs.get("co_neg_embeddings", None)
-    if co_neg_embeddings is not None:
-        similarities_2 = torch.matmul(co_query_embeddings, co_neg_embeddings.transpose(0, 1))
-        similarities = torch.cat([similarities, similarities_2], dim=1)
+    # co_neg_embeddings = kwargs.get("co_neg_embeddings", None)
+    # if co_neg_embeddings is not None:
+    #     similarities_2 = torch.matmul(co_query_embeddings, co_neg_embeddings.transpose(0, 1))
+    #     similarities = torch.cat([similarities, similarities_2], dim=1)
 
     co_loss = F.cross_entropy(similarities, labels) * dist.get_world_size()
     return co_loss
@@ -48,7 +60,8 @@ class BertRetriever(nn.Module):
                  model,
                  data_collator=DataCollatorForEvaluatingBert("bert-base-uncased", 512, 512, 8), 
                  normalize=False, 
-                 loss_function="contrastive"):
+                 loss_function="contrastive", 
+                 **kwargs):
         super().__init__()
         self.encoder=model
         # self.batch_size=batch_size
@@ -56,6 +69,7 @@ class BertRetriever(nn.Module):
         self.data_collator = data_collator
         self.normalize = normalize
         self.loss_fct = LOSS_FUNCTIONS[loss_function]
+        self.output_passage_embeddings = kwargs.get("output_passage_embeddings", False)
 
     def save_pretrained(self, output_dir: str):
         self.encoder.save_pretrained(output_dir)
@@ -117,9 +131,20 @@ class BertRetriever(nn.Module):
 
         return ctx_outputs
     
+    def rerank(self, query, sub_corpus, batch_size=32, top_k=100, **kwargs):
+        query_embedding = self.encode_queries([query], batch_size=batch_size, **kwargs)
+        corpus_embeddings = self.encode_corpus(sub_corpus, batch_size=batch_size, **kwargs)
+
+        scores = torch.matmul(query_embedding, corpus_embeddings.transpose(0, 1)).squeeze(0)
+
+        sorted_docids = sorted(sub_corpus.keys(), key=lambda x: scores[sub_corpus.keys().index(x)], reverse=True)[:top_k]
+        ranked_docids = {docid: scores[idx].item() for idx, docid in enumerate(sorted_docids)}
+
+        return ranked_docids
+
     def eval(self):
-        self.encoder.eval() 
-        self.encoder.to("cuda:0") 
+        self.encoder.eval()
+        self.encoder.to("cuda:0")
         self.training = False
 
 class LongtrieverRetriever(BertRetriever):
@@ -130,12 +155,9 @@ class LongtrieverRetriever(BertRetriever):
         co_query_embeddings = torch.cat(self._gather_tensor(query_embeddings.contiguous()))
         co_corpus_embeddings = torch.cat(self._gather_tensor(corpus_embeddings.contiguous()))
     
-        neg_input_ids = kwargs.get("neg_input_ids", None)
-        neg_attention_mask = kwargs.get("neg_attention_mask", None)
-        if neg_input_ids is not None:
-            negative_embeddings = self.encoder(neg_input_ids, neg_attention_mask)
-            co_neg_embeddings = torch.cat(self._gather_tensor(negative_embeddings.contiguous()))
-            co_loss = self.loss_fct(co_query_embeddings=co_query_embeddings, co_corpus_embeddings=co_corpus_embeddings, co_neg_embeddings=co_neg_embeddings)
+        # TODO: Create custom loss function to handle multiple CLS tokens. It would most likely be a weighted sum of all the losses
+        if len(co_corpus_embeddings.size())>2:
+            co_loss = compute_multi_passage_loss(self.loss_fct, co_query_embeddings, co_corpus_embeddings)
         else:
             co_loss = self.loss_fct(co_query_embeddings, co_corpus_embeddings)
         return (co_loss,)
@@ -146,7 +168,102 @@ class LongtrieverRetriever(BertRetriever):
         ctx_attention_mask = ctx_input["attention_mask"].to(self.encoder.device)
         ctx_outputs = self.encoder(ctx_input_ids, ctx_attention_mask) # No last_hidden_state
 
+        if self.output_passage_embeddings:
+            nb_examples, nb_blocks, hidden_size = ctx_outputs.size()
+            ctx_outputs = ctx_outputs.view(nb_examples * nb_blocks, hidden_size)
+            ctx_index = torch.arange(nb_blocks).repeat(nb_examples)
+
+            return ctx_outputs, ctx_index
+
         return ctx_outputs
+    
+    
+    def rerank(self, query, corpus, batch_size=64, top_k=100, **kwargs):
+        query_embedding = self.encode_queries([query], batch_size=batch_size, **kwargs)
+        corpus_embeddings, corpus_index = self.encode_corpus(corpus, batch_size=batch_size, rerank=True, **kwargs)
+
+        scores = torch.matmul(query_embedding, corpus_embeddings.transpose(0, 1)).squeeze(0)
+
+        # Combine corpus_index and scores in a dictionary
+        docid_score_dict = {docid: scores[idx].item() for idx, docid in enumerate(corpus_index)}
+
+
+        if self.encoder.output_passage_embeddings:
+            # Split docid to get the full docid (before the "-" separator)
+            # Keep only top-k unique docids with highest scores
+            seen_docids = {}
+            for docid, score in sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True):
+                full_docid = docid.split("-")[0]
+                if full_docid not in seen_docids:
+                    seen_docids[full_docid] = score
+                    if len(seen_docids) >= top_k:
+                        break
+            ranked_docids = seen_docids
+        else:
+            # Sort by score (descending) and filter by top_k
+            ranked_docids = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True)[:top_k])
+
+        return ranked_docids
+    
+    
+    def encode_queries(self, queries, batch_size,**kwargs):
+        query_embeddings = []
+        verbose = kwargs.get("verbose", True)
+        range_fct = trange if verbose else range
+        with torch.no_grad():
+            for start_idx in range_fct(0, len(queries), batch_size):
+                sub_queries = queries[start_idx:start_idx + batch_size]
+                query_outputs, query_index = self.tokenize(sub_queries)
+                query_embeddings.append(query_outputs)
+
+        co_query_embeddings = torch.cat(query_embeddings)
+
+        if kwargs.get("normalize", self.normalize):
+            query_embeddings = F.normalize(co_query_embeddings, p=2, dim=1)
+
+        return co_query_embeddings.cpu()
+    
+
+    def encode_corpus(self, corpus, batch_size, **kwargs):
+        corpus_embeddings = []
+        corpus_index = []
+        sentences = extract_corpus_sentences(corpus=corpus, sep=self.sep)
+
+        verbose = kwargs.get("verbose", True)
+        range_fct = trange if verbose else range
+        with torch.no_grad():
+            for start_idx in range_fct(0, len(sentences), batch_size):
+
+                sub_sentences = sentences[start_idx : start_idx + batch_size]
+
+                if kwargs.get("rerank", False):
+                    sub_corpus = corpus[start_idx : start_idx + batch_size]
+                    ctx_outputs, ctx_index = self.tokenize(sub_sentences)
+                    sub_corpus_index = [item["_id"] for item in sub_corpus]
+                    nb_examples = len(sub_corpus)
+                    nb_blocks = len(ctx_index) // batch_size
+                    sub_corpus_index_repeated = [
+                        sub_corpus_index[i // nb_blocks] for i in range(nb_examples * nb_blocks)
+                    ]
+                    combined_index = [
+                        f"{sub_corpus_index_repeated[i]}-{ctx_index[i].item()}"
+                        for i in range(nb_examples * nb_blocks)
+                    ]
+                    corpus_index.extend(combined_index)
+                    corpus_embeddings.append(ctx_outputs)
+                else:
+                    corpus_embeddings.append(self.tokenize(sub_sentences))
+
+        co_corpus_embeddings = torch.cat(corpus_embeddings)
+        
+        # NOTE: It's actually called normalize_embeddings, but I want self.normalize to take priority
+        if kwargs.get("normalize", self.normalize):
+            corpus_embeddings = F.normalize(co_corpus_embeddings, p=2, dim=1)
+
+        if kwargs.get("rerank", False):
+            return co_corpus_embeddings.cpu(), corpus_index
+        
+        return co_corpus_embeddings.cpu()
     
 
 class SiameseRetriever(BertRetriever):

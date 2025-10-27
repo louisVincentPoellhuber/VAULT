@@ -786,7 +786,8 @@ class DataCollatorForEvaluatingBert:
     tokenizer:PreTrainedTokenizerBase
     max_query_length:int
     max_corpus_length:int
-    align_right:bool=False
+    max_corpus_sent_num:int=8
+    output_passage_embeddings:bool=False
     def __post_init__(self):
         if isinstance(self.tokenizer,str):
             self.tokenizer=AutoTokenizer.from_pretrained(self.tokenizer)
@@ -795,18 +796,20 @@ class DataCollatorForEvaluatingBert:
         else:
             raise TypeError
 
-    def __call__(self, examples):      
+    def __call__(self, examples):
         tokenized_examples = self.tokenizer(
-                examples, 
+                examples,
                 padding=True,
                 truncation=True,
-                max_length=self.max_query_length, 
+                max_length=self.max_query_length,
                 return_tensors="pt",
             )
+        
+
         batch = {
             "input_ids": tokenized_examples["input_ids"],
             "attention_mask": tokenized_examples["attention_mask"]
         }
-        
+
         return batch
     

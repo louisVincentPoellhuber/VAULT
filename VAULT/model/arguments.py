@@ -31,4 +31,4 @@ class ModelArguments:
     segments: Optional[bool] = field(default=False)
     doc_token_init: Optional[str] = field(default="default") # default, zero, cls
     output_attentions: Optional[bool] = field(default=False)
-    pooling_strategy: Optional[str] = field(default="mean")
+    output_passage_embeddings: Optional[bool] = field(default=False)

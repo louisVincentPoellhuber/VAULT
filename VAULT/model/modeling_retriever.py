@@ -8,6 +8,7 @@ from tqdm import trange
 from .data_handler import DataCollatorForEvaluatingLongtriever, DataCollatorForEvaluatingBert
 
 def compute_multi_passage_loss(loss_fct, co_query_embeddings, co_corpus_embeddings, **kwargs):
+    co_query_embeddings = co_query_embeddings.squeeze(1)
     total_loss = 0.0
     num_passages = co_corpus_embeddings.size(1)
     
@@ -18,6 +19,7 @@ def compute_multi_passage_loss(loss_fct, co_query_embeddings, co_corpus_embeddin
     
     avg_loss = total_loss / num_passages
     return avg_loss
+
 
 def compute_contrastive_loss(co_query_embeddings, co_corpus_embeddings, **kwargs):
         

@@ -1,4 +1,4 @@
-python preprocessing/nq.py
+# python preprocessing/nq.py
 
 task="nq_test"
 
@@ -11,7 +11,7 @@ fi
 export EXP_NAME=$exp_name
 
 echo Training on documents.
-torchrun --nproc_per_node=4 train.py \
+torchrun --nproc_per_node=1 train.py \
         --task $task \
         --corpus_file $STORAGE_DIR/datasets/vault/$task/corpus.jsonl \
         --qrels_file $STORAGE_DIR/datasets/vault/$task/qrels/train.tsv \
@@ -85,7 +85,7 @@ fi
 export EXP_NAME=$exp_name
 
 echo Training on documents.
-torchrun --nproc_per_node=4 train.py \
+torchrun --nproc_per_node=1 train.py \
         --task $task \
         --corpus_file $STORAGE_DIR/datasets/vault/$task/corpus.jsonl \
         --qrels_file $STORAGE_DIR/datasets/vault/$task/qrels/train.tsv \

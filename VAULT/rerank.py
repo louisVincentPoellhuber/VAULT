@@ -87,7 +87,8 @@ def get_model(model_args, data_args):
                 model=encoder, 
                 normalize=data_args.normalize,
                 loss_function=data_args.loss_function, 
-                data_collator=data_collator
+                data_collator=data_collator, 
+                output_passage_embeddings=model_args.output_passage_embeddings
             )     
     elif model_args.model_type=="dpr":
         ctx_encoder = DPRContextEncoder.from_pretrained(model_args.ctx_model_name_or_path)
@@ -143,7 +144,7 @@ def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
         # TODO: Remove configs maybe?
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "hier_passage.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "bert_passage.json"))
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()

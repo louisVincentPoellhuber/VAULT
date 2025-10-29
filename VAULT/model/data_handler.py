@@ -795,21 +795,92 @@ class DataCollatorForEvaluatingBert:
             pass
         else:
             raise TypeError
+    
+    def tokenize(self,string):
+        sentences = nltk.sent_tokenize(string)
+        if not sentences:
+            sentences = ["."]
+        results = self.tokenizer(sentences, add_special_tokens=False, truncation=False, return_attention_mask=False,
+                                 return_token_type_ids=False, verbose=False)
+
+        # start_separator=False, text_separator=True, end_separator=False
+        num_special_tokens = 2  # 1 CLS + 1 SEP (text_separator)
+        block_len = self.max_corpus_length - num_special_tokens - (self.max_corpus_sent_num - 1)
+        cls_token_id = self.tokenizer.cls_token_id
+        sep_token_id = self.tokenizer.sep_token_id
+
+        input_ids_blocks = []
+        attention_mask_blocks = []
+        curr_block = []
+
+        for input_ids_sent in results['input_ids']:
+            if len(curr_block) + len(input_ids_sent) >= block_len and curr_block:
+                # start_separator=False, text_separator=True
+                block_input_ids = [cls_token_id] + curr_block[:block_len] + [sep_token_id]
+                block_input_ids = torch.tensor(block_input_ids)
+
+                input_ids_blocks.append(block_input_ids)
+                attention_mask_blocks.append(torch.tensor([1] * len(block_input_ids)))
+
+                curr_block = []
+                if len(input_ids_blocks) >= self.max_corpus_sent_num:
+                    break
+            curr_block.extend(input_ids_sent)
+
+        if len(curr_block) > 0:
+            # start_separator=False, text_separator=True
+            block_input_ids = [cls_token_id] + curr_block[:block_len] + [sep_token_id]
+            block_input_ids = torch.tensor(block_input_ids)
+
+            input_ids_blocks.append(block_input_ids)
+            attention_mask_blocks.append(torch.tensor([1] * len(block_input_ids)))
+
+        input_ids_blocks = tensorize_batch(input_ids_blocks, self.tokenizer.pad_token_id)
+        attention_mask_blocks = tensorize_batch(attention_mask_blocks, 0)
+
+        return {
+            "input_ids_blocks": input_ids_blocks,
+            "attention_mask_blocks": attention_mask_blocks,
+        }
 
     def __call__(self, examples):
-        tokenized_examples = self.tokenizer(
-                examples,
-                padding=True,
-                truncation=True,
-                max_length=self.max_query_length,
-                return_tensors="pt",
-            )
-        
+        if self.output_passage_embeddings:
+            input_ids_batch = []
+            attention_mask_batch = []
+            for example in examples:
+                results=self.tokenize(example)
+                input_ids_batch.append(results['input_ids_blocks'])
+                attention_mask_batch.append(results['attention_mask_blocks'])
 
-        batch = {
-            "input_ids": tokenized_examples["input_ids"],
-            "attention_mask": tokenized_examples["attention_mask"]
-        }
+            input_ids_batch=tensorize_batch(input_ids_batch,self.tokenizer.pad_token_id) #[B,N,L]
+            attention_mask_batch=tensorize_batch(attention_mask_batch,0) #[B,N,L]
+
+            nb_examples, nb_blocks, hidden_size = input_ids_batch.size()
+            input_ids_batch = input_ids_batch.view(nb_examples * nb_blocks, hidden_size)
+            attention_mask_batch = attention_mask_batch.view(nb_examples * nb_blocks, hidden_size)
+            index = torch.arange(nb_blocks).repeat(nb_examples).tolist()
+
+            # end_separator = False, so no need to add final sep tokens
+
+            batch = {
+                "input_ids": input_ids_batch, 
+                "attention_mask": attention_mask_batch, 
+                "index": index
+            }
+        else:
+            tokenized_examples = self.tokenizer(
+                    examples,
+                    padding=True,
+                    truncation=True,
+                    max_length=self.max_query_length,
+                    return_tensors="pt",
+                )
+            
+
+            batch = {
+                "input_ids": tokenized_examples["input_ids"],
+                "attention_mask": tokenized_examples["attention_mask"]
+            }
 
         return batch
     

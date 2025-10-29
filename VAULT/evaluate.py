@@ -89,7 +89,8 @@ def get_model(model_args, data_args):
                 model=encoder, 
                 normalize=data_args.normalize,
                 loss_function=data_args.loss_function, 
-                data_collator=data_collator
+                data_collator=data_collator, 
+                output_passage_embeddings=model_args.output_passage_embeddings
             )     
     elif model_args.model_type=="dpr":
         ctx_encoder = DPRContextEncoder.from_pretrained(model_args.ctx_model_name_or_path)
@@ -108,7 +109,7 @@ def get_model(model_args, data_args):
 def get_dataloader(model, model_args, data_args, training_args):
     # inter_block_encoder is always True for hierarchical and longtriever models
     if (model_args.model_type=="bert") or (model_args.model_type=="dpr"):
-        corpus_chunk_size = 10000 # 25000
+        corpus_chunk_size = 1500 # 25000
     else:
         corpus_chunk_size = 50000
 
@@ -123,10 +124,10 @@ def get_dataloader(model, model_args, data_args, training_args):
     return faiss_search, corpus, queries, qrels
 
 
-def index_corpus(corpus, faiss_search, training_args):
+def index_corpus(corpus, faiss_search, training_args, model_args):
     if training_args.overwrite_output_dir or not os.path.exists(os.path.join(training_args.output_dir, "default.flat.tsv")):
         log_message("Indexing.")
-        faiss_search.index(corpus=corpus, score_function="dot")
+        faiss_search.index(corpus=corpus, score_function="dot", output_passage_embeddings=model_args.output_passage_embeddings)
         log_message("Saving.")
         faiss_search.save(training_args.output_dir, prefix="default")
     else:
@@ -161,7 +162,7 @@ def main():
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
     if len(sys.argv) <=1 :
         # TODO: Remove configs maybe?
-        config_path = os.path.join(os.getcwd(), os.path.join("configs", "bert_test.json"))
+        config_path = os.path.join(os.getcwd(), os.path.join("configs", "bert_passage.json"))
         model_args, data_args, training_args = parser.parse_json_file(json_file=config_path, allow_extra_keys=True)
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -184,7 +185,7 @@ def main():
 
     faiss_search, corpus, queries, qrels = get_dataloader(model, model_args, data_args, training_args)
 
-    index_corpus(corpus, faiss_search, training_args)
+    index_corpus(corpus, faiss_search, training_args, model_args)
         
     log_message(f"========================= Results for: {training_args.run_name}.=========================")
     retrieve_and_eval(corpus, queries, qrels, faiss_search, training_args)

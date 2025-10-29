@@ -17,7 +17,7 @@
     "per_device_eval_batch_size": 10, 
     "dataloader_drop_last": true,
     "do_train": true,
-    "overwrite_output_dir": false,
+    "overwrite_output_dir": true,
     "lr": 1e-4, 
     "report_to": "comet_ml",
     "logging_steps": 10,

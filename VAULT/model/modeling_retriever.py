@@ -89,32 +89,18 @@ class BertRetriever(nn.Module):
         return (co_loss,)
 
     
-    def encode_corpus(self, corpus, batch_size, **kwargs):
-        corpus_embeddings = []
-        sentences = extract_corpus_sentences(corpus=corpus, sep=self.sep)
-
-        with torch.no_grad():
-            for start_idx in trange(0, len(sentences), batch_size):
-
-                sub_sentences = sentences[start_idx : start_idx + batch_size]
-            
-                corpus_embeddings.append(self.tokenize(sub_sentences))
-
-        co_corpus_embeddings = torch.cat(corpus_embeddings)
-        
-        # NOTE: It's actually called normalize_embeddings, but I want self.normalize to take priority
-        if kwargs.get("normalize", self.normalize):
-            corpus_embeddings = F.normalize(co_corpus_embeddings, p=2, dim=1)
-
-        return co_corpus_embeddings.cpu()
-    
-    
     def encode_queries(self, queries, batch_size,**kwargs):
         query_embeddings = []
+        verbose = kwargs.get("verbose", True)
+        range_fct = trange if verbose else range
         with torch.no_grad():
-            for start_idx in trange(0, len(queries), batch_size):
+            for start_idx in range_fct(0, len(queries), batch_size):
                 sub_queries = queries[start_idx:start_idx + batch_size]
-                query_embeddings.append(self.tokenize(sub_queries))
+                if self.output_passage_embeddings:
+                    query_outputs, query_index = self.tokenize(sub_queries)
+                else:
+                    query_outputs = self.tokenize(sub_queries)
+                query_embeddings.append(query_outputs)
 
         co_query_embeddings = torch.cat(query_embeddings)
 
@@ -123,22 +109,92 @@ class BertRetriever(nn.Module):
 
         return co_query_embeddings.cpu()
     
+
+    def encode_corpus(self, corpus, batch_size, **kwargs):
+        corpus_embeddings = []
+        corpus_index = []
+        sentences = extract_corpus_sentences(corpus=corpus, sep=self.sep)
+
+        verbose = kwargs.get("verbose", True)
+        range_fct = trange if verbose else range
+        with torch.no_grad():
+            for start_idx in range_fct(0, len(sentences), batch_size):
+
+                sub_sentences = sentences[start_idx : start_idx + batch_size]
+
+                if self.output_passage_embeddings:
+                    sub_corpus = corpus[start_idx : start_idx + batch_size]
+                    ctx_outputs, ctx_index = self.tokenize(sub_sentences)
+                    sub_corpus_index = [item["_id"] for item in sub_corpus]
+
+                    # Dynamically detect example boundaries using index value 0
+                    current_doc_idx = 0
+                    combined_index = []
+                    for i, block_idx in enumerate(ctx_index):
+                        # When we see 0, we're starting a new document
+                        if block_idx == 0 and i > 0:
+                            current_doc_idx += 1
+                        combined_index.append(f"{sub_corpus_index[current_doc_idx]}-{block_idx}")
+
+                    corpus_index.extend(combined_index)
+                    corpus_embeddings.append(ctx_outputs)
+                else:
+                    corpus_embeddings.append(self.tokenize(sub_sentences))
+
+        co_corpus_embeddings = torch.cat(corpus_embeddings)
+        
+        # NOTE: It's actually called normalize_embeddings, but I want self.normalize to take priority
+        if kwargs.get("normalize", self.normalize):
+            corpus_embeddings = F.normalize(co_corpus_embeddings, p=2, dim=1)
+
+        if self.output_passage_embeddings:
+            return co_corpus_embeddings.cpu(), corpus_index
+        
+        return co_corpus_embeddings.cpu()
+    
+    
     def tokenize(self, sub_input):
         ctx_input = self.data_collator(sub_input)
         ctx_input_ids = ctx_input["input_ids"].to(self.encoder.device)
         ctx_attention_mask = ctx_input["attention_mask"].to(self.encoder.device)
         ctx_outputs = self.encoder(ctx_input_ids, ctx_attention_mask).last_hidden_state[:, 0]
 
+        
+        if self.output_passage_embeddings:
+            ctx_index = ctx_input["index"]
+            return ctx_outputs, ctx_index
+
         return ctx_outputs
     
-    def rerank(self, query, sub_corpus, batch_size=32, top_k=100, **kwargs):
+    def rerank(self, query, corpus, batch_size=64, top_k=100, **kwargs):
         query_embedding = self.encode_queries([query], batch_size=batch_size, **kwargs)
-        corpus_embeddings = self.encode_corpus(sub_corpus, batch_size=batch_size, **kwargs)
+        
+        if self.output_passage_embeddings:
+            corpus_embeddings, corpus_index = self.encode_corpus(corpus, batch_size=batch_size, rerank=True, **kwargs)
 
-        scores = torch.matmul(query_embedding, corpus_embeddings.transpose(0, 1)).squeeze(0)
+            scores = torch.matmul(query_embedding, corpus_embeddings.transpose(0, 1)).squeeze(0)
 
-        sorted_docids = sorted(sub_corpus.keys(), key=lambda x: scores[sub_corpus.keys().index(x)], reverse=True)[:top_k]
-        ranked_docids = {docid: scores[idx].item() for idx, docid in enumerate(sorted_docids)}
+            # Combine corpus_index and scores in a dictionary
+            docid_score_dict = {docid: scores[idx].item() for idx, docid in enumerate(corpus_index)}
+
+            # Split docid to get the full docid (before the "-" separator)
+            # Keep only top-k unique docids with highest scores
+            seen_docids = {}
+            for docid, score in sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True):
+                full_docid = docid.split("-")[0]
+                if full_docid not in seen_docids:
+                    seen_docids[full_docid] = score
+                    if len(seen_docids) >= top_k:
+                        break
+            ranked_docids = seen_docids
+        else:
+            corpus_embeddings = self.encode_corpus(corpus, batch_size=batch_size, rerank=True, **kwargs)
+            scores = torch.matmul(query_embedding, corpus_embeddings.transpose(0, 1)).squeeze(0)
+            # Sort by score (descending) and filter by top_k
+            corpus_index = [item["_id"] for item in corpus]
+
+            docid_score_dict = {docid: scores[idx].item() for idx, docid in enumerate(corpus_index)}
+            ranked_docids = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True)[:top_k])
 
         return ranked_docids
 
@@ -178,94 +234,6 @@ class LongtrieverRetriever(BertRetriever):
         return ctx_outputs
     
     
-    def rerank(self, query, corpus, batch_size=64, top_k=100, **kwargs):
-        query_embedding = self.encode_queries([query], batch_size=batch_size, **kwargs)
-        corpus_embeddings, corpus_index = self.encode_corpus(corpus, batch_size=batch_size, rerank=True, **kwargs)
-
-        scores = torch.matmul(query_embedding, corpus_embeddings.transpose(0, 1)).squeeze(0)
-
-        # Combine corpus_index and scores in a dictionary
-        docid_score_dict = {docid: scores[idx].item() for idx, docid in enumerate(corpus_index)}
-
-
-        if self.encoder.output_passage_embeddings:
-            # Split docid to get the full docid (before the "-" separator)
-            # Keep only top-k unique docids with highest scores
-            seen_docids = {}
-            for docid, score in sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True):
-                full_docid = docid.split("-")[0]
-                if full_docid not in seen_docids:
-                    seen_docids[full_docid] = score
-                    if len(seen_docids) >= top_k:
-                        break
-            ranked_docids = seen_docids
-        else:
-            # Sort by score (descending) and filter by top_k
-            ranked_docids = dict(sorted(docid_score_dict.items(), key=lambda x: x[1], reverse=True)[:top_k])
-
-        return ranked_docids
-    
-    
-    def encode_queries(self, queries, batch_size,**kwargs):
-        query_embeddings = []
-        verbose = kwargs.get("verbose", True)
-        range_fct = trange if verbose else range
-        with torch.no_grad():
-            for start_idx in range_fct(0, len(queries), batch_size):
-                sub_queries = queries[start_idx:start_idx + batch_size]
-                query_outputs, query_index = self.tokenize(sub_queries)
-                query_embeddings.append(query_outputs)
-
-        co_query_embeddings = torch.cat(query_embeddings)
-
-        if kwargs.get("normalize", self.normalize):
-            query_embeddings = F.normalize(co_query_embeddings, p=2, dim=1)
-
-        return co_query_embeddings.cpu()
-    
-
-    def encode_corpus(self, corpus, batch_size, **kwargs):
-        corpus_embeddings = []
-        corpus_index = []
-        sentences = extract_corpus_sentences(corpus=corpus, sep=self.sep)
-
-        verbose = kwargs.get("verbose", True)
-        range_fct = trange if verbose else range
-        with torch.no_grad():
-            for start_idx in range_fct(0, len(sentences), batch_size):
-
-                sub_sentences = sentences[start_idx : start_idx + batch_size]
-
-                if kwargs.get("rerank", False):
-                    sub_corpus = corpus[start_idx : start_idx + batch_size]
-                    ctx_outputs, ctx_index = self.tokenize(sub_sentences)
-                    sub_corpus_index = [item["_id"] for item in sub_corpus]
-                    nb_examples = len(sub_corpus)
-                    nb_blocks = len(ctx_index) // batch_size
-                    sub_corpus_index_repeated = [
-                        sub_corpus_index[i // nb_blocks] for i in range(nb_examples * nb_blocks)
-                    ]
-                    combined_index = [
-                        f"{sub_corpus_index_repeated[i]}-{ctx_index[i].item()}"
-                        for i in range(nb_examples * nb_blocks)
-                    ]
-                    corpus_index.extend(combined_index)
-                    corpus_embeddings.append(ctx_outputs)
-                else:
-                    corpus_embeddings.append(self.tokenize(sub_sentences))
-
-        co_corpus_embeddings = torch.cat(corpus_embeddings)
-        
-        # NOTE: It's actually called normalize_embeddings, but I want self.normalize to take priority
-        if kwargs.get("normalize", self.normalize):
-            corpus_embeddings = F.normalize(co_corpus_embeddings, p=2, dim=1)
-
-        if kwargs.get("rerank", False):
-            return co_corpus_embeddings.cpu(), corpus_index
-        
-        return co_corpus_embeddings.cpu()
-    
-
 class SiameseRetriever(BertRetriever):
     def __init__(self, 
                  ctx_encoder,
